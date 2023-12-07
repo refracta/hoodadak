@@ -1,0 +1,12 @@
+#main-navbar {
+  background-color: #0098e5;
+
+  .navbar-brand {
+    text-transform: uppercase;
+    padding-left: 10px;
+  }
+
+  .container {
+    flex-direction: row !important;
+  }
+}
