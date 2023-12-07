@@ -6,6 +6,7 @@ import {DBConfig} from "./db/DBConfig";
 import StartPage from "./pages/StartPage";
 import {User} from "./types/hoodadak";
 import Main from "./components/base/Main";
+import Chat from "./pages/Chat";
 
 initDB(DBConfig);
 
@@ -20,7 +21,9 @@ function App() {
     }, []);
 
     if (user) {
-        return <Main/>;
+        return <Main>
+            <Chat/>
+        </Main>;
     } else {
         return <StartPage setUser={setUser}/>;
     }

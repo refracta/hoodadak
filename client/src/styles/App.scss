@@ -1,5 +1,6 @@
 #main-navbar {
-  background-color: #0098e5;
+  height: 60px;
+  background-color: #f8f8f8;
 
   .navbar-brand {
     text-transform: uppercase;
@@ -9,4 +10,7 @@
   .container {
     flex-direction: row !important;
   }
+}
+
+.card-header {
 }

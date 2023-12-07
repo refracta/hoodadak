@@ -1,14 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import {Menu, menuClasses, MenuItem, MenuItemStyles, Sidebar} from 'react-pro-sidebar';
-import UserProfile from "./menu/UserProfile";
-
-const hexToRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
+import UserChatMenu from "./menu/UserChatMenu";
+import {Button, Card, Nav, Tab} from "react-bootstrap";
+import UserNameMenu from "./menu/UserNameMenu";
 
 const getSideBarWidth = (windowWidth: number) => {
     let width = '80vw';
@@ -58,7 +52,7 @@ export default function Aside({toggled, setToggled}: {
         subMenuContent: ({level}) => ({
             backgroundColor:
                 level === 0
-                    ? hexToRgba('#fbfcfd', 1)
+                    ? '#fbfcfd'
                     : 'transparent',
         }),
         button: {
@@ -66,7 +60,7 @@ export default function Aside({toggled, setToggled}: {
                 color: '#9fb6cf',
             },
             '&:hover': {
-                backgroundColor: hexToRgba('#c5e4ff', 1),
+                backgroundColor: '#c5e4ff',
                 color: '#44596e',
             },
         },
@@ -82,26 +76,100 @@ export default function Aside({toggled, setToggled}: {
             onBackdropClick={() => setToggled(false)}
             onBreakPoint={setBroken}
             breakPoint="md"
-            backgroundColor={hexToRgba('#ffffff', 1)}
+            backgroundColor='#ffffff'
             rootStyles={{
                 color: '#607489',
             }}
         >
             <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-                <div style={{flex: 1, marginBottom: '32px'}}>
-                    <Menu menuItemStyles={menuItemStyles}>
-                        <UserProfile profileName="나는야"
-                                     lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
-                                     lastMessageTime="1hr"/>
-                        <UserProfile profileName="꿔다놓은" lastMessage="Your status message goes here"
-                                     lastMessageTime="1hr"/>
-                        <UserProfile profileName="보릿자루" lastMessage="Your status message goes here"
-                                     lastMessageTime="1hr"/>
-                        <UserProfile profileName="가나 다라" lastMessage="Your status message goes here"
-                                     lastMessageTime="1hr"/>
-                        <UserProfile profileName="마바 사아" lastMessage="Your status message goes here"
-                                     lastMessageTime="1hr"/>
-                    </Menu>
+                <div style={{flex: 1, overflowY: 'hidden'}}>
+                    <Tab.Container defaultActiveKey="user">
+                        <Card style={{height: '100%', borderRadius: 0}}>
+                            <Card.Header>
+                                <Nav variant="tabs" className="column">
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="user">User</Nav.Link>
+                                    </Nav.Item>
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="chat">Chat</Nav.Link>
+                                    </Nav.Item>
+                                    <Nav.Item>
+                                        <Nav.Link eventKey="setting">Setting</Nav.Link>
+                                    </Nav.Item>
+                                </Nav>
+                            </Card.Header>
+                            <Card.Body style={{padding: 0, overflowY: 'auto'}}>
+                                <Tab.Content>
+                                    <Tab.Pane eventKey="user">
+                                        <Menu menuItemStyles={menuItemStyles}>
+                                            <UserNameMenu name='나는야'/>
+                                            <UserNameMenu name='꿔다놓은'/>
+                                            <UserNameMenu name='보릿자루'/>
+                                            <UserNameMenu name='hello world'/>
+                                            <UserNameMenu name='hello world'/>
+                                        </Menu>
+                                    </Tab.Pane>
+                                    <Tab.Pane eventKey="chat">
+                                        <Menu menuItemStyles={menuItemStyles}>
+                                            <UserChatMenu name="나는야"
+                                                          lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
+                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
+                                                                                                lastMessageTime="1hr"/>
+                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
+                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
+                                                                                                lastMessageTime="1hr"/>
+                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
+                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
+                                                                                                lastMessageTime="1hr"/>
+                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
+                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
+                                                                                                lastMessageTime="1hr"/>
+                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
+                                                          lastMessageTime="1hr"/>
+                                        </Menu>
+                                    </Tab.Pane>
+                                    <Tab.Pane eventKey="setting">
+                                    </Tab.Pane>
+                                </Tab.Content>
+                            </Card.Body>
+                        </Card>
+                    </Tab.Container>
                 </div>
             </div>
         </Sidebar>
