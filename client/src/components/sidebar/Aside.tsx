@@ -1,8 +1,8 @@
 import React, {useEffect, useState} from 'react';
-import {Menu, menuClasses, MenuItem, MenuItemStyles, Sidebar} from 'react-pro-sidebar';
+import {Menu, menuClasses, MenuItemStyles, Sidebar} from 'react-pro-sidebar';
 import UserChatMenu from "./menu/UserChatMenu";
-import {Button, Card, Nav, Tab} from "react-bootstrap";
 import UserNameMenu from "./menu/UserNameMenu";
+import {Box, Card, CardContent, Tab, Tabs} from '@mui/material';
 
 const getSideBarWidth = (windowWidth: number) => {
     let width = '80vw';
@@ -22,6 +22,10 @@ export default function Aside({toggled, setToggled}: {
 }) {
     const [broken, setBroken] = React.useState<boolean>(false);
     const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
+    const [activeTab, setActiveTab] = useState<string>('user');
+    const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
+        setActiveTab(newValue);
+    };
 
     const handleResize = () => {
         setWindowWidth(window.innerWidth);
@@ -81,97 +85,40 @@ export default function Aside({toggled, setToggled}: {
                 color: '#607489',
             }}
         >
-            <div style={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-                <div style={{flex: 1, overflowY: 'hidden'}}>
-                    <Tab.Container defaultActiveKey="user">
-                        <Card style={{height: '100%', borderRadius: 0}}>
-                            <Card.Header>
-                                <Nav variant="tabs" className="column">
-                                    <Nav.Item>
-                                        <Nav.Link eventKey="user">User</Nav.Link>
-                                    </Nav.Item>
-                                    <Nav.Item>
-                                        <Nav.Link eventKey="chat">Chat</Nav.Link>
-                                    </Nav.Item>
-                                    <Nav.Item>
-                                        <Nav.Link eventKey="setting">Setting</Nav.Link>
-                                    </Nav.Item>
-                                </Nav>
-                            </Card.Header>
-                            <Card.Body style={{padding: 0, overflowY: 'auto'}}>
-                                <Tab.Content>
-                                    <Tab.Pane eventKey="user">
-                                        <Menu menuItemStyles={menuItemStyles}>
-                                            <UserNameMenu name='나는야'/>
-                                            <UserNameMenu name='꿔다놓은'/>
-                                            <UserNameMenu name='보릿자루'/>
-                                            <UserNameMenu name='hello world'/>
-                                            <UserNameMenu name='hello world'/>
-                                        </Menu>
-                                    </Tab.Pane>
-                                    <Tab.Pane eventKey="chat">
-                                        <Menu menuItemStyles={menuItemStyles}>
-                                            <UserChatMenu name="나는야"
-                                                          lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
-                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
-                                                                                                lastMessageTime="1hr"/>
-                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
-                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
-                                                                                                lastMessageTime="1hr"/>
-                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
-                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
-                                                                                                lastMessageTime="1hr"/>
-                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/> <UserChatMenu name="나는야"
-                                                                                                lastMessage="Your status message goes heressour status message goes heressYour status message goes here"
-                                                                                                lastMessageTime="1hr"/>
-                                            <UserChatMenu name="꿔다놓은" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="보릿자루" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="가나 다라" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                            <UserChatMenu name="마바 사아" lastMessage="Your status message goes here"
-                                                          lastMessageTime="1hr"/>
-                                        </Menu>
-                                    </Tab.Pane>
-                                    <Tab.Pane eventKey="setting">
-                                    </Tab.Pane>
-                                </Tab.Content>
-                            </Card.Body>
-                        </Card>
-                    </Tab.Container>
-                </div>
-            </div>
+            <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
+                <Box sx={{flex: 1, overflowY: 'hidden'}}>
+                    <Card sx={{height: '100%', borderRadius: 0}}>
+                        <Tabs
+                            value={activeTab}
+                            onChange={handleTabChange}
+                            variant="fullWidth"
+                            textColor="primary"
+                            indicatorColor="primary"
+                        >
+                            <Tab value="user" label="User"/>
+                            <Tab value="chat" label="Chat"/>
+                            <Tab value="setting" label="Setting"/>
+                        </Tabs>
+                        <CardContent sx={{padding: 0, overflowY: 'auto'}}>
+                            {activeTab === 'user' && (
+                                <Menu>
+                                    <UserNameMenu name='나는야'/>
+                                </Menu>
+                            )}
+                            {activeTab === 'chat' && (
+                                <Menu>
+                                    <UserChatMenu name="나는야" lastMessage="Your status message goes here"
+                                                  lastMessageTime="1hr"/>
+                                </Menu>
+
+                            )}
+                            {activeTab === 'setting' && (
+                                <></>
+                            )}
+                        </CardContent>
+                    </Card>
+                </Box>
+            </Box>
         </Sidebar>
     );
 };

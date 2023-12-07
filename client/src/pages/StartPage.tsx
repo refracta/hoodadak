@@ -1,39 +1,62 @@
-import {Button, Container, Form} from "react-bootstrap";
-import logo from "../assets/logo.svg";
 import React, {ChangeEvent, FormEvent, useState} from "react";
-import {useIndexedDB} from "react-indexed-db-hook";
 import {v4} from 'uuid';
+import {useIndexedDB} from "react-indexed-db-hook";
 import {User} from "../types/hoodadak";
+import {Box, Button, Container, TextField, Typography} from "@mui/material";
+import logo from "../assets/logo.svg";
 
 function StartPage({setUser}: { setUser: React.Dispatch<React.SetStateAction<User | undefined>> }) {
     const [name, setName] = useState<string>('');
     const userDB = useIndexedDB('user');
+
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
         let user: User = {name, uuid: v4()};
         await userDB.add(user);
         setUser(user);
     };
-    return (
-        <Container className="d-flex align-items-center justify-content-center" style={{minHeight: "100vh"}}>
-            <Form style={{width: "360px"}} onSubmit={handleSubmit}>
-                <div className="text-center mb-5">
-                    <img src={logo} style={{width: "175px"}} alt='logo'/>
-                </div>
-                <h2 className="text-center mb-2">Hoodadak</h2>
-                <div className="text-center mb-4" style={{color: "#707579"}}>
-                    Fast and lightweight direct messenger
-                </div>
 
-                <Form.Group className='mb-2'>
-                    <Form.Label>Name</Form.Label>
-                    <Form.Control type="text" placeholder="Enter name" value={name}
-                                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                      setName(event.target.value);
-                                  }}/>
-                </Form.Group>
-                <Button variant="primary" type="submit" className='w-100'>Enter</Button>
-            </Form>
+    return (
+        <Container maxWidth="xs" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100vh'
+        }}>
+            <Box component="form" onSubmit={handleSubmit} sx={{mt: 1}}>
+                <Box style={{textAlign: 'center', marginBottom: '3rem'}}>
+                    <img src={logo} style={{width: "175px"}} alt='logo'/>
+                </Box>
+                <Typography component="h1" variant="h5" style={{textAlign: 'center', marginBottom: '0.5rem'}}>
+                    Hoodadak
+                </Typography>
+                <Typography variant="body2" style={{textAlign: 'center', marginBottom: '1rem', color: "#707579"}}>
+                    Fast and lightweight direct messenger
+                </Typography>
+
+                <TextField
+                    margin="normal"
+                    required
+                    fullWidth
+                    id="name"
+                    label="Name"
+                    name="name"
+                    autoComplete="name"
+                    autoFocus
+                    value={name}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+                />
+
+                <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    sx={{mt: 3, mb: 2}}
+                >
+                    Enter
+                </Button>
+            </Box>
         </Container>
     );
 }
