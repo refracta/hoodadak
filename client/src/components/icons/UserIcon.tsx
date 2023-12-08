@@ -1,5 +1,4 @@
 import React from "react";
-import {MenuItem} from "react-pro-sidebar";
 
 export default function UserIcon({name}: {
     name: string,

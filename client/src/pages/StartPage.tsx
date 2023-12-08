@@ -1,7 +1,7 @@
 import React, {ChangeEvent, FormEvent, useState} from "react";
 import {v4} from 'uuid';
 import {useIndexedDB} from "react-indexed-db-hook";
-import {User} from "../types/hoodadak";
+import {User} from "../types/hoodadak-client";
 import {Box, Button, Container, TextField, Typography} from "@mui/material";
 import logo from "../assets/logo.svg";
 

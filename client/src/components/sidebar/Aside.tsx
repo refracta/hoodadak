@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Menu, menuClasses, MenuItemStyles, Sidebar} from 'react-pro-sidebar';
+import {Menu, Sidebar} from 'react-pro-sidebar';
 import UserChatMenu from "./menu/UserChatMenu";
 import UserNameMenu from "./menu/UserNameMenu";
 import {Box, Card, CardContent, Tab, Tabs} from '@mui/material';
@@ -20,7 +20,6 @@ export default function Aside({toggled, setToggled}: {
     toggled: boolean,
     setToggled: React.Dispatch<React.SetStateAction<boolean>>
 }) {
-    const [broken, setBroken] = React.useState<boolean>(false);
     const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
     const [activeTab, setActiveTab] = useState<string>('user');
     const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
@@ -39,46 +38,11 @@ export default function Aside({toggled, setToggled}: {
         };
     }, []);
 
-    const menuItemStyles: MenuItemStyles = {
-        root: {
-            fontSize: '13px',
-            fontWeight: 400,
-        },
-        icon: {
-            color: '#0098e5',
-            [`&.${menuClasses.disabled}`]: {
-                color: '#9fb6cf',
-            },
-        },
-        SubMenuExpandIcon: {
-            color: '#b6b7b9',
-        },
-        subMenuContent: ({level}) => ({
-            backgroundColor:
-                level === 0
-                    ? '#fbfcfd'
-                    : 'transparent',
-        }),
-        button: {
-            [`&.${menuClasses.disabled}`]: {
-                color: '#9fb6cf',
-            },
-            '&:hover': {
-                backgroundColor: '#c5e4ff',
-                color: '#44596e',
-            },
-        },
-        label: ({open}) => ({
-            fontWeight: open ? 600 : undefined,
-        }),
-    };
-
     return (
         <Sidebar
             width={getSideBarWidth(windowWidth)}
             toggled={toggled}
             onBackdropClick={() => setToggled(false)}
-            onBreakPoint={setBroken}
             breakPoint="md"
             backgroundColor='#ffffff'
             rootStyles={{
@@ -86,8 +50,8 @@ export default function Aside({toggled, setToggled}: {
             }}
         >
             <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
-                <Box sx={{flex: 1, overflowY: 'hidden'}}>
-                    <Card sx={{height: '100%', borderRadius: 0}}>
+                <Box sx={{flex: 1, height: '100%'}}>
+                    <Card sx={{height: '100%'}}>
                         <Tabs
                             value={activeTab}
                             onChange={handleTabChange}
@@ -99,14 +63,38 @@ export default function Aside({toggled, setToggled}: {
                             <Tab value="chat" label="Chat"/>
                             <Tab value="setting" label="Setting"/>
                         </Tabs>
-                        <CardContent sx={{padding: 0, overflowY: 'auto'}}>
+                        <CardContent sx={{padding: 0, overflowY: 'auto', height: 'calc(100% - 48px)'}}>
                             {activeTab === 'user' && (
                                 <Menu>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
+                                    <UserNameMenu name='나는야'/>
                                     <UserNameMenu name='나는야'/>
                                 </Menu>
                             )}
                             {activeTab === 'chat' && (
                                 <Menu>
+                                    <UserChatMenu name="나는야" lastMessage="Your status message goes here"
+                                                  lastMessageTime="1hr"/>
                                     <UserChatMenu name="나는야" lastMessage="Your status message goes here"
                                                   lastMessageTime="1hr"/>
                                 </Menu>
