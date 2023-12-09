@@ -40,8 +40,6 @@ function App() {
     const [chats, setChats] = useState<Chat[]>([]);
     const [toggled, setToggled] = React.useState<boolean>(false);
     const [kickReason, setKickReason] = useState<string | undefined>(undefined);
-    const localVideo = useRef<HTMLVideoElement>(null);
-    const remoteVideo = useRef<HTMLVideoElement>(null);
 
     useEffectOnce(() => {
         (async () => {
@@ -90,13 +88,46 @@ function App() {
             }
         }
     };
+
+    const localVideo = useRef<HTMLVideoElement>(null);
+    const remoteVideo = useRef<HTMLVideoElement>(null);
     let [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
+
+    function initPeerConnection() {
+        if (!peerConnection) {
+            setPeerConnection(peerConnection = createPeerConnection());
+        }
+    }
+
     let [webcamStream, setWebcamStream] = useState<MediaStream>();
 
-    function createPeerConnection() {
-        if(peerConnection){
-           return;
+    async function initWebcamStream() {
+        try {
+            webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+            setWebcamStream(webcamStream);
+            if (localVideo.current) {
+                localVideo.current.srcObject = webcamStream;
+            }
+        } catch (err) {
+            console.error(err);
+            return;
         }
+    }
+
+    let [transceiver, setTransceiver] = useState<(track: MediaStreamTrack) => RTCRtpTransceiver | undefined>();
+
+    function addTransceiver() {
+        try {
+            webcamStream!.getTracks().forEach(
+                (track => peerConnection?.addTransceiver(track, {streams: [webcamStream!]}))
+            );
+            setTransceiver(transceiver);
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    function createPeerConnection() {
         const connection = new RTCPeerConnection({
             iceServers: [
                 {urls: "stun:stun.l.google.com:19302"}
@@ -137,8 +168,7 @@ function App() {
         };
 
         connection.onnegotiationneeded = async function handleNegotiationNeededEvent() {
-            console.log("onnegotiationneeded");
-
+            console.log("onnegotiationneeded:", connection.signalingState);
             try {
                 const offer = await connection.createOffer();
                 if (connection.signalingState != "stable") {
@@ -152,15 +182,14 @@ function App() {
                     } as WSRTCSDPExchangeMessage)
                 }, 100);
             } catch (err) {
-                reportError(err);
+                console.error(err);
             }
         };
         connection.ontrack = function handleTrackEvent(event) {
             remoteVideo!.current!.srcObject = event.streams[0];
         };
 
-        setPeerConnection(connection);
-        peerConnection = connection;
+        return connection;
     }
 
     useEffect(() => {
@@ -172,7 +201,7 @@ function App() {
             setUsers(message.users);
         } else if (message.msg === WSMessageType.RTC_START) {
             (async () => {
-                createPeerConnection();
+                initPeerConnection();
                 try {
                     webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
                     setWebcamStream(webcamStream);
@@ -184,10 +213,14 @@ function App() {
                     return;
                 }
 
+                if (localVideo.current) {
+                    localVideo.current.srcObject = webcamStream;
+                }
+                webcamStream.getTracks().forEach(
+                    track => peerConnection?.addTransceiver(track, {streams: [webcamStream as MediaStream]})
+                );
+
                 try {
-                    webcamStream.getTracks().forEach(
-                        track => peerConnection?.addTransceiver(track, {streams: [webcamStream as MediaStream]})
-                    );
                     const dataChannel = peerConnection!.createDataChannel("chat");
                     const handleDataChannelOpen = (event: any) => {
                         console.log("dataChannel.OnOpen", event);
