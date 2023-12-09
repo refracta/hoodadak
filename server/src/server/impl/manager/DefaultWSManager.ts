@@ -34,12 +34,12 @@ export default class DefaultWSManager extends WSManager {
         }
     }
 
-    sendRTCStart(sockets: DefaultWSocket[] = this.getAllSockets()) {
-        this.json({msg: WSMessageType.RTC_START} as WSRTCStartMessage, sockets);
+    sendRTCStart(mode: 'chat' | 'video', sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_START, mode} as WSRTCStartMessage, sockets);
     }
 
-    sendRTCSDPExchange(sdp: RTCSessionDescription, sockets: DefaultWSocket[] = this.getAllSockets()) {
-        this.json({msg: WSMessageType.RTC_SDP_EXCHANGE, sdp} as WSRTCSDPExchangeMessage, sockets);
+    sendRTCSDPExchange(sdp: RTCSessionDescription, mode: 'chat' | 'video', sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_SDP_EXCHANGE, sdp, mode} as WSRTCSDPExchangeMessage, sockets);
     }
 
     sendRTCICEExchange(candidate: RTCIceCandidate, sockets: DefaultWSocket[] = this.getAllSockets()) {

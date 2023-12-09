@@ -65,7 +65,7 @@ export default function Aside({context}: AppProps) {
                         >
                             <Tab value="user" label={`User (${context.users.length})`}/>
                             <Tab value="chat" label="Chat"/>
-                            <Tab value="setting" label="Setting"/>
+                            {/*<Tab value="setting" label="Setting"/>*/}
                         </Tabs>
                         <CardContent sx={{padding: 0, overflowY: 'auto', height: 'calc(100% - 48px)'}}>
                             {activeTab === 'user' && (
@@ -79,11 +79,24 @@ export default function Aside({context}: AppProps) {
                                         }
                                     }
                                 }}>
-                                    {context.users.map(user => <UserNameMenu onClick={async () => {
+                                    {context.users.map(user => <UserNameMenu statusColor={(() => {
+                                        let {chat, user: currentUser, users} = context;
+                                        let targetUser = users.find(u => u.hash === user.hash);
+                                        let isSelectedMe = targetUser?.selectedUser?.hash === currentUser?.hash;
+                                        let statusColor;
+                                        if (context.connectionStatus === 'connected' && user.hash === chat?.user.hash) {
+                                            statusColor = 'green';
+                                        } else if (isSelectedMe) {
+                                            statusColor = 'orange';
+                                        } else if (targetUser) {
+                                            statusColor = 'red';
+                                        }
+                                        return statusColor;
+                                    })()} onClick={async () => {
                                         let chats = context.chats;
                                         let chat = chats.find(c => user.hash === c.user.hash);
                                         if (!chat) {
-                                            chat = {user, lastMessage: ''};
+                                            chat = {user: user, lastMessage: ''};
                                             await context.chatsDB.add(chat);
                                             context.setChats(await context.chatsDB.getAll() as Chat[]);
                                         }
@@ -97,14 +110,31 @@ export default function Aside({context}: AppProps) {
                                     {context.chats.map(c => <UserChatMenu onClick={() => {
                                         context.setChat(c);
                                     }} active={context.chat?.user.hash === c.user.hash}
-                                                                          key={c.user.hash} user={c.user}
+                                                                          key={c.user.hash}
+                                                                          user={c.user}
                                                                           lastMessage={c.lastMessage}
-                                                                          lastMessageTime={c.lastMessageTime ? TimeUtils.timeSince(c.lastMessageTime) : ''}/>)}
+                                                                          lastMessageTime={c.lastMessageTime ? TimeUtils.timeSince(c.lastMessageTime) : ''}
+                                                                          statusColor={
+                                                                              (() => {
+                                                                                  let {chat, user, users} = context;
+                                                                                  let targetUser = users.find(u => u.hash === c?.user.hash);
+                                                                                  let isSelectedMe = targetUser?.selectedUser?.hash === user?.hash;
+                                                                                  let statusColor;
+                                                                                  if (context.connectionStatus === 'connected' && c.user.hash === chat?.user.hash) {
+                                                                                      statusColor = 'green';
+                                                                                  } else if (isSelectedMe) {
+                                                                                      statusColor = 'orange';
+                                                                                  } else if (targetUser) {
+                                                                                      statusColor = 'red';
+                                                                                  }
+                                                                                  return statusColor;
+                                                                              })()
+                                                                          }/>)}
                                 </Menu>
                             )}
-                            {activeTab === 'setting' && (
+                           {/* {activeTab === 'setting' && (
                                 <></>
-                            )}
+                            )}*/}
                         </CardContent>
                     </Card>
                 </Box>

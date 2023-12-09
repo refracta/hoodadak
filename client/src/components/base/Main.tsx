@@ -1,13 +1,16 @@
-import React from 'react';
+import React, {MouseEventHandler} from 'react';
 import {AppBar, Box, createTheme, IconButton, Toolbar, Typography, useMediaQuery, useTheme} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import {Link} from "react-router-dom";
 import Aside from "../sidebar/Aside";
 import {AppProps} from "../../types/hoodadak-client";
 import UserIcon from "../icons/UserIcon";
+import VideoCallIcon from '@mui/icons-material/VideoCall';
+import CallEndIcon from '@mui/icons-material/CallEnd';
 
-export default function Main({context, children}: AppProps & {
-    children?: React.ReactNode
+export default function Main({context, children, modeChangeHandler}: AppProps & {
+    children?: React.ReactNode,
+    modeChangeHandler?: MouseEventHandler<HTMLButtonElement>
 }) {
     const defaultTheme = useTheme();
     const theme = createTheme({
@@ -27,7 +30,9 @@ export default function Main({context, children}: AppProps & {
     let targetUser = users.find(u => u.hash === chat?.user.hash);
     let isSelectedMe = targetUser?.selectedUser?.hash === user?.hash;
     let statusColor;
-    if (isSelectedMe) {
+    if (context.connectionStatus === 'connected') {
+        statusColor = 'green';
+    } else if (isSelectedMe) {
         statusColor = 'orange';
     } else if (targetUser) {
         statusColor = 'red';
@@ -54,12 +59,21 @@ export default function Main({context, children}: AppProps & {
                                 <Link to="/" style={{textDecoration: 'none', color: 'inherit'}}>HOODADAK</Link>}
                         </Typography>
 
+                        {chat ? <IconButton
+                            disabled={context.connectionStatus === 'disconnected'}
+                            edge="end"
+                            color="inherit"
+                            aria-label="videocall"
+                            onClick={modeChangeHandler}
+                        >
+                            {context.mode === 'chat' ? <VideoCallIcon/> : <CallEndIcon/>}
+                        </IconButton> : <></>}
                         {!isMdUp && (
-                            <IconButton
-                                edge="end"
-                                color="inherit"
-                                aria-label="menu"
-                                onClick={() => context.setToggled(true)}
+                            <IconButton style={{marginLeft: '5px'}}
+                                        edge="end"
+                                        color="inherit"
+                                        aria-label="menu"
+                                        onClick={() => context.setToggled(true)}
                             >
                                 <MenuIcon/>
                             </IconButton>

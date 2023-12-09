@@ -26,7 +26,6 @@ import {AppContext} from "./types/hoodadak-client";
 import {IconButton, Paper, TextField} from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
-import {MessageBox} from "react-chat-elements";
 
 initDB(DBConfig);
 
@@ -40,6 +39,8 @@ function App() {
     const [chats, setChats] = useState<Chat[]>([]);
     const [toggled, setToggled] = React.useState<boolean>(false);
     const [kickReason, setKickReason] = useState<string | undefined>(undefined);
+    const [mode, setMode] = React.useState<'chat' | 'video'>('chat');
+    const [connectionStatus, setConnectionStatus] = React.useState<'connected' | 'disconnected'>('disconnected');
     const localVideo = useRef<HTMLVideoElement>(null);
     const remoteVideo = useRef<HTMLVideoElement>(null);
 
@@ -79,6 +80,7 @@ function App() {
     useEffect(() => {
         if (chat?.user) {
             sendJsonMessage({msg: WSMessageType.SELECT_USER, user: chat?.user} as WSSelectUserMessage);
+            closeConnection();
         }
     }, [chat?.user]);
 
@@ -91,12 +93,146 @@ function App() {
         }
     };
     let [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
+    let [dataChannel, setDataChannel] = useState<RTCDataChannel>();
+
+    function initPeerConnection(mode: 'chat' | 'video') {
+        if (!peerConnection) {
+            setPeerConnection(peerConnection = createPeerConnection(mode));
+        }
+    }
+
     let [webcamStream, setWebcamStream] = useState<MediaStream>();
 
-    function createPeerConnection() {
-        if(peerConnection){
-           return;
+    async function initWebcamStream() {
+        try {
+            webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+            setWebcamStream(webcamStream);
+            if (localVideo.current) {
+                localVideo.current.srcObject = webcamStream;
+            }
+            (global as any).WCST = webcamStream;
+        } catch (err) {
+            console.error(err);
+            return;
         }
+    }
+
+    let [transceiver, setTransceiver] = useState<(track: MediaStreamTrack) => RTCRtpTransceiver | undefined>();
+
+    function addTransceiver() {
+        try {
+            webcamStream!.getTracks().forEach(
+                (track => peerConnection?.addTransceiver(track, {streams: [webcamStream!]}))
+            );
+            setTransceiver(transceiver);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function closeConnection() {
+        if (peerConnection) {
+            peerConnection.ontrack = null;
+            peerConnection.onicecandidate = null;
+            peerConnection.oniceconnectionstatechange = null;
+            peerConnection.onsignalingstatechange = null;
+            peerConnection.onicegatheringstatechange = null;
+            peerConnection.onnegotiationneeded = null;
+
+            // Stop all transceivers on the connection
+
+            peerConnection.getTransceivers().forEach(transceiver => {
+                try {
+                    transceiver.stop();
+                } catch (e) {
+
+                }
+            });
+
+            if (localVideo.current!.srcObject) {
+                localVideo.current!.pause();
+                let tracks = (localVideo.current!.srcObject as any).getTracks();
+                tracks.forEach((track: MediaStreamTrack) => {
+                    track?.stop();
+                });
+            }
+
+            peerConnection.close();
+            setPeerConnection(peerConnection = undefined)
+            setWebcamStream(webcamStream = undefined);
+            setConnectionStatus('disconnected');
+        }
+    }
+
+    function addDataChannel() {
+        try {
+            const channel = peerConnection!.createDataChannel("chat");
+            const handleDataChannelOpen = (event: Event) => {
+                console.log("channel.OnOpen", event);
+                setConnectionStatus('connected');
+            };
+
+            let closeSide = false;
+            let mode: 'chat' | 'video' = 'video';
+            const handleDataChannelMessageReceived = ({data}: MessageEvent) => {
+                data = JSON.parse(data);
+                console.log(data);
+                if (data.msg === 'ChangeMode') {
+                    console.log('ChangeMode');
+                    setMode(mode = data.mode);
+                    closeConnection();
+                    closeSide = true;
+                }
+                /*if (data === 'chat') {
+                    mode = 'chat';
+                }
+                if (data === 'video') {
+                    mode = 'video';
+                }
+                if (data === 'okay') {
+                    console.log('hallo');
+                    closeConnection();
+                    closeSide = true;
+                }*/
+            };
+
+            const handleDataChannelError = (error: Event) => {
+                console.log("channel.OnError:", error);
+            };
+
+            const handleDataChannelClose = (event: Event) => {
+                console.log("channel.OnClose", event);
+                closeConnection();
+                if (closeSide) {
+                    closeSide = false;
+                    startRTC(mode);
+                }
+            };
+
+            channel.onopen = handleDataChannelOpen;
+            channel.onmessage = handleDataChannelMessageReceived;
+            channel.onerror = handleDataChannelError;
+            // channel.onclose = handleDataChannelClose;
+
+            peerConnection!.ondatachannel = (event) => {
+                console.log("on data channel")
+                let receiveChannel = event.channel;
+                receiveChannel.onopen = handleDataChannelOpen;
+                receiveChannel.onmessage = handleDataChannelMessageReceived;
+                receiveChannel.onerror = handleDataChannelError;
+                receiveChannel.onclose = handleDataChannelClose;
+            };
+
+            setDataChannel(channel);
+            dataChannel = channel;
+            (global as any).DC = channel;
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+
+    function createPeerConnection(mode: 'chat' | 'video') {
         const connection = new RTCPeerConnection({
             iceServers: [
                 {urls: "stun:stun.l.google.com:19302"}
@@ -119,7 +255,7 @@ function App() {
                 case "closed":
                 case "failed":
                 case "disconnected":
-                    // closeVideoCall();
+                    // closeConnection();
                     break;
             }
         };
@@ -131,14 +267,13 @@ function App() {
             console.log("signalingState:", connection.signalingState);
             switch (connection.signalingState) {
                 case "closed":
-                    // closeVideoCall();
+                    // closeConnection();
                     break;
             }
         };
 
         connection.onnegotiationneeded = async function handleNegotiationNeededEvent() {
-            console.log("onnegotiationneeded");
-
+            console.log("onnegotiationneeded:", connection.signalingState);
             try {
                 const offer = await connection.createOffer();
                 if (connection.signalingState != "stable") {
@@ -148,21 +283,32 @@ function App() {
                 setTimeout(_ => {
                     sendJsonMessage({
                         msg: WSMessageType.RTC_SDP_EXCHANGE,
-                        sdp: connection.localDescription
+                        sdp: connection.localDescription,
+                        mode
                     } as WSRTCSDPExchangeMessage)
                 }, 100);
             } catch (err) {
-                reportError(err);
+                console.error(err);
             }
         };
         connection.ontrack = function handleTrackEvent(event) {
             remoteVideo!.current!.srcObject = event.streams[0];
         };
 
-        setPeerConnection(connection);
-        peerConnection = connection;
+        return connection;
     }
 
+    async function startRTC(mode: 'chat' | 'video') {
+        console.log('startRTC Mode: ', mode);
+        initPeerConnection(mode);
+        await initWebcamStream();
+        if (mode === 'video') {
+            addTransceiver();
+        }
+        addDataChannel();
+    }
+
+    (global as any).startRTC = startRTC;
     useEffect(() => {
         let message: WSMessage = lastJsonMessage;
         if (!message) return;
@@ -171,155 +317,41 @@ function App() {
         } else if (message.msg === WSMessageType.USERS) {
             setUsers(message.users);
         } else if (message.msg === WSMessageType.RTC_START) {
-            (async () => {
-                createPeerConnection();
-                try {
-                    webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-                    setWebcamStream(webcamStream);
-                    if (localVideo.current) {
-                        localVideo.current.srcObject = webcamStream;
-                    }
-                } catch (err) {
-                    console.error(err);
-                    return;
-                }
-
-                try {
-                    webcamStream.getTracks().forEach(
-                        track => peerConnection?.addTransceiver(track, {streams: [webcamStream as MediaStream]})
-                    );
-                    const dataChannel = peerConnection!.createDataChannel("chat");
-                    const handleDataChannelOpen = (event: any) => {
-                        console.log("dataChannel.OnOpen", event);
-                        setInterval(_ => {
-                            dataChannel.send("Hello World!");
-                        }, 1000);
-                    };
-
-                    const handleDataChannelMessageReceived = (event: any) => {
-                        console.log("dataChannel.OnMessage:", event);
-                    };
-
-                    const handleDataChannelError = (error: any) => {
-                        console.log("dataChannel.OnError:", error);
-                    };
-
-                    const handleDataChannelClose = (event: any) => {
-                        console.log("dataChannel.OnClose", event);
-                    };
-
-                    dataChannel.onopen = handleDataChannelOpen;
-                    dataChannel.onmessage = handleDataChannelMessageReceived;
-                    dataChannel.onerror = handleDataChannelError;
-                    dataChannel.onclose = handleDataChannelClose;
-
-                    peerConnection!.ondatachannel = (event) => {
-                        console.log("on data channel")
-                        let receiveChannel = event.channel;
-                        receiveChannel.onopen = handleDataChannelOpen;
-                        receiveChannel.onmessage = handleDataChannelMessageReceived;
-                        receiveChannel.onerror = handleDataChannelError;
-                        receiveChannel.onclose = handleDataChannelClose;
-                    };
-
-                    (global as any).DC = dataChannel;
-                    // global transceiver
-                } catch (err) {
-                    console.error(err);
-                }
-            })();
+            startRTC(message.mode);
         } else if (message.msg === WSMessageType.RTC_SDP_EXCHANGE && message?.sdp?.type === 'offer') {
             (async () => {
-                console.log('[SDP OFFER]');
-                createPeerConnection();
+                console.log('RTC_SDP_EXCHANGE - offer');
+                let mode = message.mode;
+                setMode(mode);
+                initPeerConnection(mode);
                 let desc = new RTCSessionDescription(message.sdp);
-
-                // If the connection isn't stable yet, wait for it...
                 if (peerConnection?.signalingState != "stable") {
-                    console.log("  - But the signaling state isn't stable, so triggering rollback");
-                    // Set the local and remove descriptions for rollback; don't proceed
-                    // until both return.
                     await Promise.all([
                         peerConnection?.setLocalDescription({type: "rollback"}),
                         peerConnection?.setRemoteDescription(desc)
                     ]);
                     return;
                 } else {
-                    console.log("  - Setting remote description");
                     await peerConnection?.setRemoteDescription(desc);
                 }
-
-                // Get the webcam stream if we don't already have it
-
                 if (!webcamStream) {
-                    try {
-                        webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-                        setWebcamStream(webcamStream);
-                        if (localVideo.current) {
-                            localVideo.current.srcObject = webcamStream;
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        return;
+                    await initWebcamStream();
+                    if (mode === 'video') {
+                        addTransceiver();
                     }
-
-                    if (localVideo.current) {
-                        localVideo.current.srcObject = webcamStream;
-                    }
-                    try {
-                        webcamStream.getTracks().forEach(
-                            track => peerConnection?.addTransceiver(track, {streams: [webcamStream as MediaStream]})
-                        );
-                        const dataChannel = peerConnection!.createDataChannel("chat");
-                        const handleDataChannelOpen = (event: any) => {
-                            console.log("dataChannel.OnOpen", event);
-                            setInterval(_ => {
-                                dataChannel.send("Hello World!");
-                            }, 1000);
-                        };
-
-                        const handleDataChannelMessageReceived = (event: any) => {
-                            console.log("dataChannel.OnMessage:", event);
-                        };
-
-                        const handleDataChannelError = (error: any) => {
-                            console.log("dataChannel.OnError:", error);
-                        };
-
-                        const handleDataChannelClose = (event: any) => {
-                            console.log("dataChannel.OnClose", event);
-                        };
-
-                        dataChannel.onopen = handleDataChannelOpen;
-                        dataChannel.onmessage = handleDataChannelMessageReceived;
-                        dataChannel.onerror = handleDataChannelError;
-                        dataChannel.onclose = handleDataChannelClose;
-
-                        peerConnection!.ondatachannel = (event) => {
-                            console.log("on data channel")
-                            let receiveChannel = event.channel;
-                            receiveChannel.onopen = handleDataChannelOpen;
-                            receiveChannel.onmessage = handleDataChannelMessageReceived;
-                            receiveChannel.onerror = handleDataChannelError;
-                            receiveChannel.onclose = handleDataChannelClose;
-                        };
-
-                        (global as any).DC = dataChannel;
-                        // global transceiver
-                    } catch (err) {
-                        console.error(err);
-                    }
+                    addDataChannel();
                 }
-                console.log("---> Creating and sending answer to caller");
                 await peerConnection.setLocalDescription(await peerConnection.createAnswer());
                 sendJsonMessage({
                     msg: WSMessageType.RTC_SDP_EXCHANGE,
-                    sdp: peerConnection.localDescription
+                    sdp: peerConnection?.localDescription,
+                    mode
                 } as WSRTCSDPExchangeMessage);
             })();
         } else if (message.msg === WSMessageType.RTC_SDP_EXCHANGE && message?.sdp?.type === 'answer') {
             (async () => {
-                console.log('[SDP ANSWER]');
+                setMode(mode);
+                console.log('RTC_SDP_EXCHANGE - ANSWER');
                 const desc = new RTCSessionDescription(message.sdp);
                 await peerConnection?.setRemoteDescription(desc).catch(reportError);
             })();
@@ -335,6 +367,10 @@ function App() {
     }, [lastJsonMessage]);
 
     let context: AppContext = {
+        connectionStatus,
+        setConnectionStatus,
+        mode,
+        setMode,
         toggled,
         setToggled,
         user,
@@ -367,11 +403,20 @@ function App() {
         console.log(event.target.files);
     };
 
+
     if (user) {
         return (
             <>
                 {kickReason ? <KickOverlay reason={kickReason}/> : <></>}
-                <Main context={context}>
+                <Main context={context} modeChangeHandler={() => {
+                    let mode;
+                    if (context.mode === 'chat') {
+                        context.setMode(mode = 'video');
+                    } else {
+                        context.setMode(mode = 'chat');
+                    }
+                    dataChannel?.send(JSON.stringify({msg: 'ChangeMode', mode}));
+                }}>
                     <div style={{
                         height: '100%',
                         display: 'flex',
@@ -379,13 +424,24 @@ function App() {
                         justifyContent: 'space-between'
                     }}>
                         <div style={{overflowY: 'auto'}}>
-                            <MessageBox type={"text"} id={1} position={'right'} text={'hello'} title={'title'}
+                            {/*<MessageBox type={"text"} id={1} position={'right'} text={'hello'} title={'title'}
                                         focus={false}
                                         date={new Date(new Date().getTime() - 60000)} titleColor={'black'}
                                         forwarded={false} replyButton={false}
-                                        removeButton={false} status={'sent'} notch={false} retracted={false}/>
-                            <video style={{border: 'solid 1px red'}} ref={remoteVideo} autoPlay></video>
-                            <video style={{border: 'solid 1px blue'}} ref={localVideo} autoPlay muted></video>
+                                        removeButton={false} status={'sent'} notch={false} retracted={false}/>*/}
+                            <div style={{height: '100%', display: mode == 'video' ? 'block' : 'none'}}>
+                                <video style={{
+                                    width: '100%',
+                                    height: 'calc(50% - 8px)',
+                                    margin: 0,
+                                    marginTop: '8px'
+                                }} ref={remoteVideo} autoPlay></video>
+                                <video style={{
+                                    width: '100%',
+                                    height: 'calc(50% - 8px)',
+                                    margin: 0
+                                }} ref={localVideo} autoPlay muted></video>
+                            </div>
                         </div>
                         <Paper component="form"
                                sx={{

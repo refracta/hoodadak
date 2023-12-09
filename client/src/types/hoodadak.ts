@@ -39,11 +39,13 @@ export type WSSelectUserMessage = {
 
 export type WSRTCStartMessage = {
     msg: WSMessageType.RTC_START;
+    mode: 'chat' | 'video'
 };
 
 export type WSRTCSDPExchangeMessage = {
     msg: WSMessageType.RTC_SDP_EXCHANGE;
     sdp: RTCSessionDescription;
+    mode: 'chat' | 'video';
 };
 
 export type WSRTCICEExchangeMessage = {

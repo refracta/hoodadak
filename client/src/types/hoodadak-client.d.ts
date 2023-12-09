@@ -15,10 +15,14 @@ export type IndexedDB = {
 export type AppContext = {
     toggled: boolean;
     setToggled: Dispatch<SetStateAction<boolean>>;
+    connectionStatus: 'connected' | 'disconnected';
+    setConnectionStatus: Dispatch<SetStateAction<'connected' | 'disconnected'>>;
+    mode: 'chat' | 'video';
+    setMode: Dispatch<SetStateAction<'chat' | 'video'>>;
     user: User | undefined;
     setUser: Dispatch<SetStateAction<User | undefined>>;
     chat: Chat | undefined;
-    setChat: Dispatch<SetStateAction<Chat| undefined>>;
+    setChat: Dispatch<SetStateAction<Chat | undefined>>;
     chats: Chat[];
     setChats: Dispatch<SetStateAction<Chat[]>>;
     users: ModelData[];

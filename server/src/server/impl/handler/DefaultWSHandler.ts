@@ -55,22 +55,17 @@ export default class DefaultWSHandler implements WebSocketHandler<DefaultWSServe
 
             let {user, selectedUser, isCoupled, selectedUserSocket} = getCoupledInfo(server, socket);
             if (isCoupled) {
-                server.manager.sendUsers()
-                // Host에게 WSRTCStart 보내고
-                // Host로부터 WSRTCFirstSDPExchange 받아서 Client로 보내고
-                // Client로부터 WSRTCSecondSDPExchange 받아서 Host로 보내고
-                // GetSDP1
-                server.manager.sendRTCStart([selectedUserSocket]);
+                server.manager.sendUsers();
+                server.manager.sendRTCStart('chat', [selectedUserSocket]);
                 console.log(user.name, selectedUser.name);
             }
         };
 
-
         this.handles[WSMessageType.RTC_SDP_EXCHANGE] = async (server: DefaultWSServer, socket: DefaultWSocket, data: WSRTCSDPExchangeMessage) => {
             let {user, selectedUser, isCoupled, selectedUserSocket} = getCoupledInfo(server, socket);
             if (isCoupled) {
-                server.manager.sendRTCSDPExchange(data.sdp, [selectedUserSocket]);
-                console.log('sdp exchange - ', data?.sdp?.type, data?.sdp?.sdp.substring(0,10));
+                server.manager.sendRTCSDPExchange(data.sdp, data.mode,[selectedUserSocket]);
+                console.log('sdp exchange - ', data?.sdp?.type, data?.sdp?.sdp.substring(0, 10));
             }
         }
 
