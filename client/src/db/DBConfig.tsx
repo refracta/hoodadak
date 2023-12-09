@@ -4,10 +4,28 @@ export const DBConfig = {
     objectStoresMeta: [
         {
             store: "user",
-            storeConfig: {keyPath: "id", autoIncrement: false},
+            storeConfig: {keyPath: "id", autoIncrement: true},
             storeSchema: [
                 {name: "name", keypath: "name", options: {unique: false}},
                 {name: "uuid", keypath: "uuid", options: {unique: false}},
+                {name: "hash", keypath: "hash", options: {unique: false}},
+            ],
+        },
+        {
+            store: "messages",
+            storeConfig: {keyPath: "id", autoIncrement: true},
+            storeSchema: [
+                {name: "user", keypath: "user", options: {unique: false}},
+                {name: "data", keypath: "data", options: {unique: false}}
+            ],
+        },
+        {
+            store: "chats",
+            storeConfig: {keyPath: "id", autoIncrement: true},
+            storeSchema: [
+                {name: "user", keypath: "user", options: {unique: false}},
+                {name: "lastMessage", keypath: "lastMessage", options: {unique: false}},
+                {name: "lastMessageTime", keypath: "lastTime", options: {unique: false}}
             ],
         }
     ],

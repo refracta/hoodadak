@@ -5,6 +5,7 @@ import DefaultWSManager from '../server/impl/manager/DefaultWSManager';
 import * as express from 'express';
 import {Application} from 'express';
 import {Server} from 'http';
+import {User} from "./hoodadak";
 
 export type ISocket = Socket & { id: string };
 export type IWSocket = WebSocket & { id: string, req: any };
@@ -25,7 +26,7 @@ export interface WebSocketHandler<Server, Socket> {
 
 export type DefaultWSServer = WSServer<DefaultWSData, DefaultWSManager>;
 export type DefaultWSData = {
-    path: string;
+    user: User;
 };
 export type DefaultWSocket = IWSocket & { data: DefaultWSData };
 export type WebSocketHandle = (server: DefaultWSServer, socket: DefaultWSocket, data: any) => void;

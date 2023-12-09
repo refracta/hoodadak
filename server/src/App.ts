@@ -32,7 +32,6 @@ import DefaultWSHandler from "./server/impl/handler/DefaultWSHandler";
         }
     });
     const wsServer: DefaultWSServer = new WSServer(httpServer.app, '/websocket', new DefaultWSManager());
-
     wsServer.addHandler(new DefaultWSHandler());
     httpServer.listen(parseInt(process.env.PORT) || 5000);
     wsServer.start();

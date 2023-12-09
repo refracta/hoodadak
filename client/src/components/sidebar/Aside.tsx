@@ -1,8 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {Menu, Sidebar} from 'react-pro-sidebar';
+import {Menu, menuClasses, Sidebar} from 'react-pro-sidebar';
 import UserChatMenu from "./menu/UserChatMenu";
 import UserNameMenu from "./menu/UserNameMenu";
 import {Box, Card, CardContent, Tab, Tabs} from '@mui/material';
+import {AppProps} from "../../types/hoodadak-client";
+import {Chat} from "../../types/hoodadak";
+import {TimeUtils} from "../../utils/TimeUtils";
 
 const getSideBarWidth = (windowWidth: number) => {
     let width = '80vw';
@@ -16,15 +19,9 @@ const getSideBarWidth = (windowWidth: number) => {
     return width;
 }
 
-export default function Aside({toggled, setToggled}: {
-    toggled: boolean,
-    setToggled: React.Dispatch<React.SetStateAction<boolean>>
-}) {
+export default function Aside({context}: AppProps) {
     const [windowWidth, setWindowWidth] = useState<number>(window.innerWidth);
     const [activeTab, setActiveTab] = useState<string>('user');
-    const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
-        setActiveTab(newValue);
-    };
 
     const handleResize = () => {
         setWindowWidth(window.innerWidth);
@@ -41,12 +38,17 @@ export default function Aside({toggled, setToggled}: {
     return (
         <Sidebar
             width={getSideBarWidth(windowWidth)}
-            toggled={toggled}
-            onBackdropClick={() => setToggled(false)}
+            toggled={context.toggled}
+            onBackdropClick={() => context.setToggled(false)}
             breakPoint="md"
             backgroundColor='#ffffff'
             rootStyles={{
-                color: '#607489',
+                [`.${menuClasses.button}:hover`]: {
+                    backgroundColor: '#dfefff !important',
+                },
+                [`.${menuClasses.active}`]: {
+                    backgroundColor: '#dfefff',
+                }
             }}
         >
             <Box sx={{display: 'flex', flexDirection: 'column', height: '100%'}}>
@@ -54,51 +56,51 @@ export default function Aside({toggled, setToggled}: {
                     <Card sx={{height: '100%'}}>
                         <Tabs
                             value={activeTab}
-                            onChange={handleTabChange}
+                            onChange={(event: React.SyntheticEvent, newValue: string) => {
+                                setActiveTab(newValue);
+                            }}
                             variant="fullWidth"
                             textColor="primary"
                             indicatorColor="primary"
                         >
-                            <Tab value="user" label="User"/>
+                            <Tab value="user" label={`User (${context.users.length})`}/>
                             <Tab value="chat" label="Chat"/>
                             <Tab value="setting" label="Setting"/>
                         </Tabs>
                         <CardContent sx={{padding: 0, overflowY: 'auto', height: 'calc(100% - 48px)'}}>
                             {activeTab === 'user' && (
-                                <Menu>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
-                                    <UserNameMenu name='나는야'/>
+                                <Menu menuItemStyles={{
+                                    button: {
+                                        '&:hover': {
+                                            backgroundColor: '#f3f3f3',
+                                        },
+                                        '&:active': {
+                                            backgroundColor: '#f3f3f3',
+                                        }
+                                    }
+                                }}>
+                                    {context.users.map(user => <UserNameMenu onClick={async () => {
+                                        let chats = context.chats;
+                                        let chat = chats.find(c => user.hash === c.user.hash);
+                                        if (!chat) {
+                                            chat = {user, lastMessage: ''};
+                                            await context.chatsDB.add(chat);
+                                            context.setChats(await context.chatsDB.getAll() as Chat[]);
+                                        }
+                                        context.setChat(chat);
+                                        setActiveTab('chat');
+                                    }} key={user.hash} user={user}/>)}
                                 </Menu>
                             )}
                             {activeTab === 'chat' && (
                                 <Menu>
-                                    <UserChatMenu name="나는야" lastMessage="Your status message goes here"
-                                                  lastMessageTime="1hr"/>
-                                    <UserChatMenu name="나는야" lastMessage="Your status message goes here"
-                                                  lastMessageTime="1hr"/>
+                                    {context.chats.map(c => <UserChatMenu onClick={() => {
+                                        context.setChat(c);
+                                    }} active={context.chat?.user.hash === c.user.hash}
+                                                                          key={c.user.hash} user={c.user}
+                                                                          lastMessage={c.lastMessage}
+                                                                          lastMessageTime={c.lastMessageTime ? TimeUtils.timeSince(c.lastMessageTime) : ''}/>)}
                                 </Menu>
-
                             )}
                             {activeTab === 'setting' && (
                                 <></>

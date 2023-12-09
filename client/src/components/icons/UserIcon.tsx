@@ -1,7 +1,9 @@
 import React from "react";
+import {User} from "../../types/hoodadak";
 
-export default function UserIcon({name}: {
-    name: string,
+export default function UserIcon({user, statusColor}: {
+    user: User,
+    statusColor?: string, // Optional status color prop
 }) {
     const getInitials = (name: string) => {
         const words = name.split(' ');
@@ -21,10 +23,11 @@ export default function UserIcon({name}: {
 
     return (
         <div style={{
+            position: 'relative', // Updated to position the status indicator
             width: '40px',
             height: '40px',
             borderRadius: '20px',
-            background: `linear-gradient(135deg, ${hashColor(name)} 0%, ${hashColor(name + 'salt')} 100%)`,
+            background: `linear-gradient(135deg, ${hashColor(user.hash as string)} 0%, ${hashColor(user.hash + 'salt')} 100%)`,
             boxShadow: '0 2px 2px rgba(0, 0, 0, 0.2)',
             color: 'white',
             display: 'flex',
@@ -32,7 +35,19 @@ export default function UserIcon({name}: {
             alignItems: 'center',
             fontSize: '18px',
         }}>
-            {getInitials(name)}
+            {getInitials(user.name)}
+            {statusColor && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '10px',
+                    border: 'groove 2px white',
+                    backgroundColor: statusColor,
+                }}/>
+            )}
         </div>
     );
 };

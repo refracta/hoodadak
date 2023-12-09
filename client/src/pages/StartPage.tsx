@@ -1,9 +1,10 @@
 import React, {ChangeEvent, FormEvent, useState} from "react";
 import {v4} from 'uuid';
 import {useIndexedDB} from "react-indexed-db-hook";
-import {User} from "../types/hoodadak-client";
 import {Box, Button, Container, TextField, Typography} from "@mui/material";
 import logo from "../assets/logo.svg";
+import {User} from "../types/hoodadak";
+import CryptoJS from 'crypto-js';
 
 function StartPage({setUser}: { setUser: React.Dispatch<React.SetStateAction<User | undefined>> }) {
     const [name, setName] = useState<string>('');
@@ -11,7 +12,10 @@ function StartPage({setUser}: { setUser: React.Dispatch<React.SetStateAction<Use
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
-        let user: User = {name, uuid: v4()};
+        let uuid = v4();
+        let user = {
+            name, uuid, hash: CryptoJS.SHA512(name + uuid).toString()
+        };
         await userDB.add(user);
         setUser(user);
     };

@@ -1,6 +1,14 @@
 import WSManager from '../../manager/WSManager';
 import {DefaultWSocket} from '../../../types/hoodadak-server';
-import {WSHelloMessage, WSMessageType, WSReadyMessage} from "../../../types/hoodadak";
+import {
+    WSKickMessage,
+    WSMessageType,
+    WSReadyMessage,
+    WSRTCICEExchangeMessage,
+    WSRTCSDPExchangeMessage,
+    WSRTCStartMessage,
+    WSUsersMessage
+} from "../../../types/hoodadak";
 
 export default class DefaultWSManager extends WSManager {
     json(data: any, sockets: DefaultWSocket[] = this.getAllSockets()) {
@@ -15,7 +23,30 @@ export default class DefaultWSManager extends WSManager {
         return this.server?.sockets as DefaultWSocket[];
     }
 
-    sendHello(data: string, sockets: DefaultWSocket[] = this.getAllSockets()) {
-        this.json({msg: WSMessageType.HELLO, data} as WSHelloMessage, sockets);
+    sendUsers(sockets: DefaultWSocket[] = this.getAllSockets()) {
+        let filteredSockets = sockets.filter(s => s.data?.user?.uuid);
+        for (let socket of filteredSockets) {
+            let targetUsers = filteredSockets.map(s => ({
+                ...s.data.user,
+                uuid: undefined
+            })).filter(u => u.name !== socket.data.user.name);
+            this.json({msg: WSMessageType.USERS, users: targetUsers} as WSUsersMessage, [socket]);
+        }
+    }
+
+    sendRTCStart(sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_START} as WSRTCStartMessage, sockets);
+    }
+
+    sendRTCSDPExchange(sdp: RTCSessionDescription, sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_SDP_EXCHANGE, sdp} as WSRTCSDPExchangeMessage, sockets);
+    }
+
+    sendRTCICEExchange(candidate: RTCIceCandidate, sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_ICE_EXCHANGE, candidate} as WSRTCICEExchangeMessage, sockets);
+    }
+
+    sendKick(reason: string, sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.KICK, reason} as WSKickMessage, sockets);
     }
 }
