@@ -94,10 +94,10 @@ function App() {
     let [webcamStream, setWebcamStream] = useState<MediaStream>();
 
     function createPeerConnection() {
-        if (peerConnection) {
-            return;
+        if(peerConnection){
+           return;
         }
-        let connection = new RTCPeerConnection({
+        const connection = new RTCPeerConnection({
             iceServers: [
                 {urls: "stun:stun.l.google.com:19302"}
             ]
@@ -105,7 +105,7 @@ function App() {
 
         connection.onicecandidate = function handleICECandidateEvent(event) {
             if (event.candidate) {
-                console.log("*** Outgoing ICE candidate: " + event.candidate.candidate);
+                console.log("Candidate:", event.candidate.candidate);
                 sendJsonMessage({
                     msg: WSMessageType.RTC_ICE_EXCHANGE,
                     candidate: event.candidate
@@ -113,7 +113,7 @@ function App() {
             }
         };
         connection.oniceconnectionstatechange = function handleICEConnectionStateChangeEvent(event) {
-            console.log("*** ICE connection state changed to " + connection.iceConnectionState);
+            console.log("iceConnectionState:", connection.iceConnectionState);
 
             switch (connection.iceConnectionState) {
                 case "closed":
@@ -124,34 +124,27 @@ function App() {
             }
         };
         connection.onicegatheringstatechange = function handleICEGatheringStateChangeEvent(event) {
-            console.log("*** ICE gathering state changed to: " + connection.iceGatheringState);
+            console.log("iceGatheringState:", connection.iceGatheringState);
         }
         ;
         connection.onsignalingstatechange = function handleSignalingStateChangeEvent(event) {
-            console.log("*** WebRTC signaling state changed to: " + connection.signalingState);
+            console.log("signalingState:", connection.signalingState);
             switch (connection.signalingState) {
                 case "closed":
                     // closeVideoCall();
                     break;
             }
-        }
-        ;
+        };
+
         connection.onnegotiationneeded = async function handleNegotiationNeededEvent() {
-            console.log("*** Negotiation needed");
+            console.log("onnegotiationneeded");
 
             try {
-                console.log("---> Creating offer");
                 const offer = await connection.createOffer();
-
                 if (connection.signalingState != "stable") {
-                    console.log("     -- The connection isn't stable yet; postponing...")
                     return;
                 }
-
-                console.log("---> Setting local description to the offer");
                 await connection.setLocalDescription(offer);
-
-                console.log("---> Sending the offer to the remote peer2");
                 setTimeout(_ => {
                     sendJsonMessage({
                         msg: WSMessageType.RTC_SDP_EXCHANGE,
@@ -159,16 +152,11 @@ function App() {
                     } as WSRTCSDPExchangeMessage)
                 }, 100);
             } catch (err) {
-                console.log("*** The following error occurred while handling the negotiationneeded event:");
                 reportError(err);
             }
         };
         connection.ontrack = function handleTrackEvent(event) {
-            console.log("*** Track event");
-            if (remoteVideo.current) {
-                remoteVideo.current.srcObject = event.streams[0];
-                console.log(remoteVideo)
-            }
+            remoteVideo!.current!.srcObject = event.streams[0];
         };
 
         setPeerConnection(connection);
@@ -244,7 +232,7 @@ function App() {
             (async () => {
                 console.log('[SDP OFFER]');
                 createPeerConnection();
-                var desc = new RTCSessionDescription(message.sdp);
+                let desc = new RTCSessionDescription(message.sdp);
 
                 // If the connection isn't stable yet, wait for it...
                 if (peerConnection?.signalingState != "stable") {
@@ -332,24 +320,14 @@ function App() {
         } else if (message.msg === WSMessageType.RTC_SDP_EXCHANGE && message?.sdp?.type === 'answer') {
             (async () => {
                 console.log('[SDP ANSWER]');
-                console.log("*** Call recipient has accepted our call");
-
-                // Configure the remote description, which is the SDP payload
-                // in our "video-answer" message.
-
-                var desc = new RTCSessionDescription(message.sdp);
+                const desc = new RTCSessionDescription(message.sdp);
                 await peerConnection?.setRemoteDescription(desc).catch(reportError);
             })();
         } else if (message.msg === WSMessageType.RTC_ICE_EXCHANGE) {
             (async () => {
-                var candidate = new RTCIceCandidate(message.candidate);
-
-                console.log("*** Adding received ICE candidate: " + JSON.stringify(candidate));
-                try {
-                    await peerConnection?.addIceCandidate(candidate)
-                } catch (err) {
-                    reportError(err);
-                }
+                const candidate = new RTCIceCandidate(message.candidate);
+                console.log("RTC_ICE_EXCHANGE: " + JSON.stringify(candidate));
+                peerConnection?.addIceCandidate(candidate).catch(reportError);
             })();
         } else {
             console.log(message);
