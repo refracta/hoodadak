@@ -12,6 +12,7 @@ import Main from "./components/base/Main";
 import useWebSocket from "react-use-websocket";
 import {
     Chat,
+    Message,
     User,
     WSLoginMessage,
     WSMessage,
@@ -26,6 +27,8 @@ import {AppContext} from "./types/hoodadak-client";
 import {IconButton, Paper, TextField} from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
+import {MessageBox} from "react-chat-elements";
+import {Simulate} from "react-dom/test-utils";
 
 initDB(DBConfig);
 
@@ -35,12 +38,16 @@ function App() {
     const messagesDB = useIndexedDB('messages');
     const [user, setUser] = useState<User>();
     const [users, setUsers] = useState<User[]>([]);
-    const [chat, setChat] = useState<Chat>();
-    const [chats, setChats] = useState<Chat[]>([]);
+    let [chat, setChat] = useState<Chat>();
+    let [chats, setChats] = useState<Chat[]>([]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [toggled, setToggled] = React.useState<boolean>(false);
     const [kickReason, setKickReason] = useState<string | undefined>(undefined);
     const [mode, setMode] = React.useState<'chat' | 'video'>('chat');
     const [connectionStatus, setConnectionStatus] = React.useState<'connected' | 'disconnected'>('disconnected');
+    const [downloadProgress, setDownloadProgress] = React.useState<number>(0);
+    const [uploadProgress, setUploadProgress] = React.useState<number>(0);
+    const chatContainer = useRef<HTMLDivElement>(null);
     const localVideo = useRef<HTMLVideoElement>(null);
     const remoteVideo = useRef<HTMLVideoElement>(null);
 
@@ -55,6 +62,23 @@ function App() {
         (async () => {
             let chats = await chatsDB.getAll();
             setChats(chats);
+        })();
+    }, [chatsDB]);
+
+    useEffect(() => {
+        scrollChatContainer(250);
+        scrollChatContainer(500);
+        scrollChatContainer(1000);
+    }, [chat]);
+
+    useEffect(() => {
+        scrollChatContainer();
+    }, [mode]);
+
+    useEffectOnce(() => {
+        (async () => {
+            let messages = await messagesDB.getAll();
+            setMessages(messages);
         })();
     }, [messagesDB]);
 
@@ -94,6 +118,7 @@ function App() {
     };
     let [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
     let [dataChannel, setDataChannel] = useState<RTCDataChannel>();
+    let [fileChannel, setFileChannel] = useState<RTCDataChannel>();
 
     function initPeerConnection(mode: 'chat' | 'video') {
         if (!peerConnection) {
@@ -166,15 +191,23 @@ function App() {
 
     function addDataChannel() {
         try {
-            const channel = peerConnection!.createDataChannel("chat");
+            const dataChannelRaw = peerConnection!.createDataChannel("chat");
+            const fileChannelRaw = peerConnection!.createDataChannel("file");
+
             const handleDataChannelOpen = (event: Event) => {
-                console.log("channel.OnOpen", event);
+                console.log("dataChannelRaw.OnOpen", event);
                 setConnectionStatus('connected');
             };
 
             let closeSide = false;
             let mode: 'chat' | 'video' = 'video';
-            const handleDataChannelMessageReceived = ({data}: MessageEvent) => {
+            let receivedBuffers: ArrayBuffer[] = [];
+            let raw: Blob;
+            let fileBytes = 0;
+            let fileType: string;
+            let fileName: string;
+            let receivedBytes = 0;
+            const handleDataChannelMessageReceived = async ({data}: MessageEvent) => {
                 data = JSON.parse(data);
                 console.log(data);
                 if (data.msg === 'ChangeMode') {
@@ -182,26 +215,42 @@ function App() {
                     setMode(mode = data.mode);
                     closeConnection();
                     closeSide = true;
+                } else if (data.msg === 'SendMessage') {
+                    let message = data.message;
+                    message.user = chat?.user;
+                    message.data.isMe = false;
+                    if (message.data.type !== 'text') {
+                        message.data.raw = raw;
+                    }
+
+                    await messagesDB.add(message);
+                    setMessages(prevMessages => [...prevMessages, message]);
+                    chat!.lastMessageTime = new Date(message.data.time);
+                    chat!.lastMessage = message.data.type === 'text' ? message.data.raw : `[${message.data.type}] ${message.data.name}`;
+                    setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+                    await chatsDB.update(chat);
+
+
+                    scrollChatContainer(250);
+                    scrollChatContainer(500);
+                    scrollChatContainer(1000);
+                } else if (data.msg === 'FileStart') {
+                    fileBytes = data.size;
+                    fileName = data.name;
+                    fileType = data.type;
+                } else if (data.msg === 'FileComplete') {
+                    raw = new Blob(receivedBuffers);
+                    receivedBuffers = [];
+                    receivedBytes = 0;
                 }
-                /*if (data === 'chat') {
-                    mode = 'chat';
-                }
-                if (data === 'video') {
-                    mode = 'video';
-                }
-                if (data === 'okay') {
-                    console.log('hallo');
-                    closeConnection();
-                    closeSide = true;
-                }*/
             };
 
             const handleDataChannelError = (error: Event) => {
-                console.log("channel.OnError:", error);
+                console.log("dataChannelRaw.OnError:", error);
             };
 
             const handleDataChannelClose = (event: Event) => {
-                console.log("channel.OnClose", event);
+                console.log("dataChannelRaw.OnClose", event);
                 closeConnection();
                 if (closeSide) {
                     closeSide = false;
@@ -209,23 +258,52 @@ function App() {
                 }
             };
 
-            channel.onopen = handleDataChannelOpen;
-            channel.onmessage = handleDataChannelMessageReceived;
-            channel.onerror = handleDataChannelError;
-            // channel.onclose = handleDataChannelClose;
+            const handleFileChannelOpen = (event: Event) => {
 
-            peerConnection!.ondatachannel = (event) => {
-                console.log("on data channel")
-                let receiveChannel = event.channel;
-                receiveChannel.onopen = handleDataChannelOpen;
-                receiveChannel.onmessage = handleDataChannelMessageReceived;
-                receiveChannel.onerror = handleDataChannelError;
-                receiveChannel.onclose = handleDataChannelClose;
             };
 
-            setDataChannel(channel);
-            dataChannel = channel;
-            (global as any).DC = channel;
+            const handleFileChannelMessageReceived = async ({data}: MessageEvent) => {
+                receivedBuffers.push(data);
+                receivedBytes += data.byteLength;
+                updateProgress('receive', receivedBytes, fileBytes);
+            };
+
+            const handleFileChannelError = (error: Event) => {
+            };
+
+            const handleFileChannelClose = (event: Event) => {
+
+            };
+
+            dataChannelRaw.onopen = handleDataChannelOpen;
+            dataChannelRaw.onmessage = handleDataChannelMessageReceived;
+            dataChannelRaw.onerror = handleDataChannelError;
+            // dataChannelRaw.onclose = handleDataChannelClose;
+
+            fileChannelRaw.onopen = handleFileChannelOpen;
+            fileChannelRaw.onmessage = handleFileChannelMessageReceived;
+            fileChannelRaw.onerror = handleFileChannelError;
+            // fileChannel.onclose = handleFileChannelClose;
+
+            peerConnection!.ondatachannel = (event) => {
+                console.log("on data dataChannelRaw")
+                let receiveChannel = event.channel;
+                if (receiveChannel.label === "chat") {
+                    receiveChannel.onopen = handleDataChannelOpen;
+                    receiveChannel.onmessage = handleDataChannelMessageReceived;
+                    receiveChannel.onerror = handleDataChannelError;
+                    receiveChannel.onclose = handleDataChannelClose;
+                } else if (receiveChannel.label === "file") {
+                    receiveChannel.onopen = handleFileChannelOpen;
+                    receiveChannel.onmessage = handleFileChannelMessageReceived;
+                    receiveChannel.onerror = handleFileChannelError;
+                    receiveChannel.onclose = handleFileChannelClose;
+                }
+            };
+
+            setDataChannel(dataChannel = dataChannelRaw);
+            setFileChannel(dataChannel = fileChannelRaw);
+            (global as any).DC = dataChannelRaw;
         } catch (e) {
             console.error(e);
         }
@@ -393,16 +471,103 @@ function App() {
     };
 
     const [message, setMessage] = React.useState('');
+    const scrollChatContainer = (delay: number = 0) => {
+        setTimeout(_ => {
+            if (chatContainer.current) {
+                chatContainer.current.scrollTop = chatContainer.current.scrollHeight
+            }
+        }, delay);
+    };
+    const handleSendMessage = async () => {
+        let msg: Message = {
+            user: chat?.user,
+            data: {raw: message, time: new Date(), type: 'text', isMe: true}
+        } as Message;
+        await messagesDB.add(msg);
+        setMessages([...messages, msg]);
+        chat!.lastMessageTime = new Date(msg.data.time);
+        chat!.lastMessage = msg.data.raw;
+        setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+        await chatsDB.update(chat);
 
-    const handleSendMessage = () => {
-        console.log(message);
         setMessage('');
+        dataChannel?.send(JSON.stringify({
+            msg: 'SendMessage', message: msg
+        }));
+        scrollChatContainer();
     };
 
-    const handleFileUpload = (event: any) => {
-        console.log(event.target.files);
-    };
+    function updateProgress(type: string, sentBytes: number, totalBytes: number) {
+        const progress = sentBytes / totalBytes;
+        if (type === 'receive') {
+            setDownloadProgress(Math.floor(progress * 100));
+            if (progress === 1) {
+                setTimeout(_ => {
+                    setDownloadProgress(0);
+                }, 1000);
+            }
+        } else {
+            setUploadProgress(Math.floor(progress * 100));
+            if (progress === 1) {
+                setTimeout(_ => {
+                    setUploadProgress(0);
+                }, 1000);
+            }
+        }
+        console.log(`전송 진행률 (${type}): ${progress * 100}%`);
+    }
 
+    const handleFileUpload = async (event: any) => {
+        let [file] = event.target.files;
+        let type = 'file';
+        if (file.type.startsWith('image/')) {
+            type = 'image';
+        } else if (file.type.startsWith('video/')) {
+            type = 'video';
+        } else if (file.type.startsWith('audio/')) {
+            type = 'audio';
+        }
+
+        let msg: Message = {
+            user: chat?.user,
+            data: {raw: file, time: new Date(), name: file.name, type, isMe: true}
+        } as Message;
+
+        const chunkSize = 16384; // 16 KB
+        let offset = 0;
+        const fileReader = new FileReader();
+        fileReader.onload = async (e) => {
+            let buffer = e.target!.result as ArrayBuffer;
+            fileChannel!.send(buffer);
+            offset += buffer.byteLength;
+            if (offset === file.size) {
+                dataChannel!.send(JSON.stringify({msg: 'FileComplete'}));
+                dataChannel!.send(JSON.stringify({msg: 'SendMessage', message: msg}));
+                await messagesDB.add(msg);
+                setMessages([...messages, msg]);
+                chat!.lastMessageTime = new Date(msg.data.time);
+                chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
+                setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+                await chatsDB.update(chat);
+
+
+                scrollChatContainer(250);
+                scrollChatContainer(500);
+                scrollChatContainer(1000);
+            }
+            updateProgress('send', offset, file.size);
+            if (offset < file.size) {
+                readSlice(offset);
+            }
+        };
+        const readSlice = (o: number) => {
+            const slice = file.slice(offset, o + chunkSize);
+            fileReader.readAsArrayBuffer(slice);
+        };
+
+        dataChannel!.send(JSON.stringify({msg: 'FileStart', size: file.size, name: file.name, type: file.type}));
+        readSlice(0);
+    };
 
     if (user) {
         return (
@@ -423,12 +588,134 @@ function App() {
                         flexDirection: 'column',
                         justifyContent: 'space-between'
                     }}>
-                        <div style={{overflowY: 'auto'}}>
-                            {/*<MessageBox type={"text"} id={1} position={'right'} text={'hello'} title={'title'}
-                                        focus={false}
-                                        date={new Date(new Date().getTime() - 60000)} titleColor={'black'}
-                                        forwarded={false} replyButton={false}
-                                        removeButton={false} status={'sent'} notch={false} retracted={false}/>*/}
+                        <div ref={chatContainer} style={{overflowY: 'auto'}}>
+                            <div
+                                style={{height: '100%', display: mode == 'chat' ? 'block' : 'none'}}>
+                                {messages.filter(m => m.user.hash === chat?.user.hash).map((m, i) => {
+                                    const downloadBlob = (blob: Blob, filename: string) => {
+                                        const url = URL.createObjectURL(blob);
+
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = filename;
+                                        document.body.appendChild(a);
+                                        a.click();
+
+                                        // URL과 a 태그를 정리합니다.
+                                        URL.revokeObjectURL(url);
+                                        document.body.removeChild(a);
+                                    }
+
+                                    if (m.data.type === 'text') {
+                                        return (
+                                            <MessageBox
+                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
+                                                type='text' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
+                                                text={((text: any) => {
+                                                    let textSplit = text.split('\n');
+                                                    return textSplit.map((line: string, index: number) => (
+                                                        <React.Fragment key={index}>
+                                                            {line}
+                                                            {textSplit.length - 1 === index ? <></> : <br/>}
+                                                        </React.Fragment>
+                                                    ));
+                                                })(m.data.raw)}
+                                                title={''}
+                                                date={m.data.time}
+                                                focus={false}
+                                                titleColor={'black'}
+                                                forwarded={false} replyButton={false}
+                                                removeButton={false} status={'sent'} notch={true}
+                                                retracted={false}/>);
+                                    } else if (m.data.type === 'image') {
+                                        return (
+                                            <MessageBox
+                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
+                                                type='photo' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
+                                                text={''}
+                                                data={{
+                                                    uri: URL.createObjectURL(m.data.raw),
+                                                    name: m.data.name,
+                                                    status: {click: false, loading: 0}
+                                                }}
+                                                onClick={() => {
+                                                    downloadBlob(m.data.raw, m.data.name!)
+                                                }}
+                                                title={m.data.name!}
+                                                date={m.data.time}
+                                                focus={false}
+                                                titleColor={'black'}
+                                                forwarded={false} replyButton={false}
+                                                removeButton={false} status={'sent'} notch={true}
+                                                retracted={false}/>);
+                                    } else if (m.data.type === 'video') {
+                                        return (
+                                            <MessageBox
+                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
+                                                type='video' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
+                                                text={''}
+                                                controlsList={''}
+                                                data={{
+                                                    videoURL: URL.createObjectURL(m.data.raw),
+                                                    name: m.data.name,
+                                                    status: {
+                                                        click: false, loading: 0.5,
+                                                        download: true
+                                                    }
+                                                }}
+                                                title={m.data.name!}
+                                                date={m.data.time}
+                                                focus={false}
+                                                titleColor={'black'}
+                                                forwarded={false} replyButton={false}
+                                                removeButton={false} status={'sent'} notch={true}
+                                                retracted={false}/>);
+                                    } else if (m.data.type === 'audio') {
+                                        return (
+                                            <MessageBox
+                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
+                                                type='audio' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
+                                                text={''}
+                                                data={{
+                                                    audioURL: URL.createObjectURL(m.data.raw),
+                                                    name: m.data.name,
+                                                }}
+                                                title={m.data.name!}
+                                                date={m.data.time}
+                                                focus={false}
+                                                titleColor={'black'}
+                                                forwarded={false} replyButton={false}
+                                                removeButton={false} status={'sent'} notch={true}
+                                                retracted={false}/>);
+                                    } else if (m.data.type === 'file') {
+                                        return (
+                                            <MessageBox
+                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
+                                                type='file' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
+                                                text={m.data.name!}
+                                                data={{
+                                                    uri: URL.createObjectURL(m.data.raw),
+                                                    name: m.data.name,
+                                                    status: {
+                                                        click: false,
+                                                        loading: 0,
+                                                    }
+                                                }}
+                                                onClick={() => {
+                                                    downloadBlob(m.data.raw, m.data.name!)
+                                                }}
+                                                title={''}
+                                                date={m.data.time}
+                                                focus={false}
+                                                titleColor={'black'}
+                                                forwarded={false} replyButton={false}
+                                                removeButton={false} status={'sent'} notch={true}
+                                                retracted={false}/>);
+                                    }
+                                })}
+
+                            </div>
+
                             <div style={{height: '100%', display: mode == 'video' ? 'block' : 'none'}}>
                                 <video style={{
                                     width: '100%',
@@ -450,14 +737,18 @@ function App() {
                                    width: 'calc(100% - 3px - 20px)',
                                    margin: '10px 10px 10px 10px',
                                    border: 'solid 1.5px #1976d2',
-                                   borderRadius: '20px'
+                                   borderRadius: '30px'
                                }}>
-                            <IconButton sx={{p: '10px'}} aria-label="upload picture" component="label">
-                                <input hidden accept="image/*" type="file" onChange={handleFileUpload}/>
+                            <IconButton style={{
+                                background: `linear-gradient(to top, rgba(100, 181, 246, 0.7) ${uploadProgress}%, transparent ${uploadProgress}%),
+            linear-gradient(to bottom, rgba(244, 67, 54, 0.7) ${downloadProgress}%, transparent ${downloadProgress}%)`
+                            }} disabled={connectionStatus === 'disconnected'} sx={{p: '10px'}}
+                                        aria-label="upload picture" component="label">
+                                <input hidden accept="*" type="file" onChange={handleFileUpload}/>
                                 <AttachFileIcon/>
                             </IconButton>
                             <TextField
-                                disabled={context.chat === undefined}
+                                disabled={connectionStatus === 'disconnected'}
                                 multiline
                                 maxRows={4} // You can specify the maximum number of rows
                                 placeholder="Type a message"
@@ -466,9 +757,19 @@ function App() {
                                 sx={{ml: 1, flex: 1}}
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        if (message.length === 0) {
+                                            return;
+                                        }
+                                        handleSendMessage();
+                                    }
+                                }
+                                }
                             />
-                            <IconButton sx={{p: '10px'}} aria-label="send" onClick={handleSendMessage}>
+                            <IconButton sx={{p: '10px'}} aria-label="send" disabled={message.length == 0}
+                                        onClick={handleSendMessage}>
                                 <SendIcon/>
                             </IconButton>
                         </Paper>

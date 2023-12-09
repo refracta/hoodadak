@@ -16,6 +16,10 @@ export type WSMessage = {
 
 export type User = { name: string, uuid?: string, hash?: string, selectedUser?: User }
 export type Chat = { user: User, lastMessage: string, lastMessageTime?: Date }
+export type Message = {
+    user: User,
+    data: { raw: any, type: 'text' | 'file' | 'image' | 'video' | 'audio', time: Date, isMe?: boolean, name?: string }
+}
 
 export type WSLoginMessage = {
     msg: WSMessageType.LOGIN;

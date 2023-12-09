@@ -97,7 +97,8 @@ export default function Aside({context}: AppProps) {
                                         let chat = chats.find(c => user.hash === c.user.hash);
                                         if (!chat) {
                                             chat = {user: user, lastMessage: ''};
-                                            await context.chatsDB.add(chat);
+                                            let id = await context.chatsDB.add(chat);
+                                            chat = {...chat, id} as Chat;
                                             context.setChats(await context.chatsDB.getAll() as Chat[]);
                                         }
                                         context.setChat(chat);
@@ -107,32 +108,36 @@ export default function Aside({context}: AppProps) {
                             )}
                             {activeTab === 'chat' && (
                                 <Menu>
-                                    {context.chats.map(c => <UserChatMenu onClick={() => {
+                                    {context.chats.sort((c1: Chat, c2: Chat) => {
+                                        let d1 = c1.lastMessageTime ? new Date(c1.lastMessageTime).getTime() : Number.MAX_VALUE;
+                                        let d2 = c2.lastMessageTime ? new Date(c2.lastMessageTime).getTime() : Number.MAX_VALUE;
+                                        return d2 - d1;
+                                    }).map(c => <UserChatMenu onClick={() => {
                                         context.setChat(c);
                                     }} active={context.chat?.user.hash === c.user.hash}
-                                                                          key={c.user.hash}
-                                                                          user={c.user}
-                                                                          lastMessage={c.lastMessage}
-                                                                          lastMessageTime={c.lastMessageTime ? TimeUtils.timeSince(c.lastMessageTime) : ''}
-                                                                          statusColor={
-                                                                              (() => {
-                                                                                  let {chat, user, users} = context;
-                                                                                  let targetUser = users.find(u => u.hash === c?.user.hash);
-                                                                                  let isSelectedMe = targetUser?.selectedUser?.hash === user?.hash;
-                                                                                  let statusColor;
-                                                                                  if (context.connectionStatus === 'connected' && c.user.hash === chat?.user.hash) {
-                                                                                      statusColor = 'green';
-                                                                                  } else if (isSelectedMe) {
-                                                                                      statusColor = 'orange';
-                                                                                  } else if (targetUser) {
-                                                                                      statusColor = 'red';
-                                                                                  }
-                                                                                  return statusColor;
-                                                                              })()
-                                                                          }/>)}
+                                                              key={c.user.hash}
+                                                              user={c.user}
+                                                              lastMessage={c.lastMessage}
+                                                              lastMessageTime={c.lastMessageTime ? TimeUtils.timeSince(c.lastMessageTime) : ''}
+                                                              statusColor={
+                                                                  (() => {
+                                                                      let {chat, user, users} = context;
+                                                                      let targetUser = users.find(u => u.hash === c?.user.hash);
+                                                                      let isSelectedMe = targetUser?.selectedUser?.hash === user?.hash;
+                                                                      let statusColor;
+                                                                      if (context.connectionStatus === 'connected' && c.user.hash === chat?.user.hash) {
+                                                                          statusColor = 'green';
+                                                                      } else if (isSelectedMe) {
+                                                                          statusColor = 'orange';
+                                                                      } else if (targetUser) {
+                                                                          statusColor = 'red';
+                                                                      }
+                                                                      return statusColor;
+                                                                  })()
+                                                              }/>)}
                                 </Menu>
                             )}
-                           {/* {activeTab === 'setting' && (
+                            {/* {activeTab === 'setting' && (
                                 <></>
                             )}*/}
                         </CardContent>

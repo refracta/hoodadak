@@ -16,3 +16,41 @@
   background-color: #ffffff;
   background-image: url(../assets/background.svg);
 }
+
+.rce-container-mbox {
+  margin-bottom: 10px;
+}
+
+.rce-mbox-custom-right {
+  .rce-mbox-left-notch {
+    fill: #effdde !important;
+  }
+
+  .rce-mbox-right-notch {
+    fill: #effdde !important;
+  }
+
+  .rce-mbox {
+    background: #effdde !important;
+  }
+
+  .rce-mbox-body {
+    background-color: #effdde;
+  }
+}
+
+.rce-mbox-photo img {
+  max-width: 50vw;
+}
+
+.rce-mbox-video video {
+  max-width: 50vw;
+}
+
+.rce-mbox-audio audio {
+  max-width: 50vw;
+}
+
+iframe#webpack-dev-server-client-overlay {
+  display: none;
+}
