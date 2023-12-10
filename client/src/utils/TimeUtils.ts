@@ -21,7 +21,7 @@ export class TimeUtils {
         if (interval > 1) {
             return Math.floor(interval) + " minutes ago";
         }
-        if (seconds > 10) {
+        if (seconds > 20) {
             return seconds + " seconds ago"
         }
         return "just now";

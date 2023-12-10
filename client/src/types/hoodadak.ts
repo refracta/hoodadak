@@ -14,11 +14,28 @@ export type WSMessage = {
     msg: string;
 } & any;
 
-export type User = { name: string, uuid?: string, hash?: string, selectedUser?: User }
-export type Chat = { user: User, lastMessage: string, lastMessageTime?: Date }
+export type User = {
+    hash?: string;
+    id?: number;
+    name: string;
+    selectedUser?: User;
+    uuid?: string
+}
+export type Chat = {
+    id?: number;
+    lastMessage: string;
+    lastMessageTime?: Date;
+    user: User
+}
 export type Message = {
-    user: User,
-    data: { raw: any, type: 'text' | 'file' | 'image' | 'video' | 'audio', time: Date, isMe?: boolean, name?: string }
+    data: {
+        isMe?: boolean;
+        name?: string;
+        raw: any;
+        time: Date;
+        type: 'text' | 'file' | 'image' | 'video' | 'audio'
+    };
+    user: User
 }
 
 export type WSLoginMessage = {

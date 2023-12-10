@@ -1,13 +1,14 @@
-import React, {ChangeEvent, FormEvent, useState} from "react";
+import React, {ChangeEvent, FormEvent, useContext, useState} from "react";
 import {v4} from 'uuid';
 import {useIndexedDB} from "react-indexed-db-hook";
 import {Box, Button, Container, TextField, Typography} from "@mui/material";
 import {User} from "../../types/hoodadak";
 import CryptoJS from 'crypto-js';
+import {GlobalContext} from "../../App";
 
-export default function StartPage({setUser}: { setUser: React.Dispatch<React.SetStateAction<User | undefined>> }) {
+export default function StartPage() {
+    const {userDB, setUser} = useContext(GlobalContext);
     const [name, setName] = useState<string>('');
-    const userDB = useIndexedDB('user');
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
