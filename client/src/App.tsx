@@ -1,13 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
 import './App.css';
 import './styles/App.scss';
 import {initDB, useIndexedDB} from "react-indexed-db-hook";
 import {DBConfig} from "./db/DBConfig";
-import StartPage from "./pages/StartPage";
+import StartPage from "./components/pages/StartPage";
 import Main from "./components/base/Main";
 import useWebSocket from "react-use-websocket";
 import {
@@ -28,11 +24,10 @@ import {IconButton, Paper, TextField} from "@mui/material";
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import {MessageBox} from "react-chat-elements";
-import {Simulate} from "react-dom/test-utils";
 
 initDB(DBConfig);
 
-function App() {
+export default function App() {
     const userDB = useIndexedDB('user');
     const chatsDB = useIndexedDB('chats');
     const messagesDB = useIndexedDB('messages');
@@ -313,7 +308,12 @@ function App() {
     function createPeerConnection(mode: 'chat' | 'video') {
         const connection = new RTCPeerConnection({
             iceServers: [
-                {urls: "stun:stun.l.google.com:19302"}
+                {urls: "stun:stun.l.google.com:19302"},
+                {
+                    urls: "turn:freeturn.net:3478",
+                    credential: 'free',
+                    username: 'free'
+                }
             ]
         });
 
@@ -782,5 +782,3 @@ function App() {
     }
 
 }
-
-export default App;

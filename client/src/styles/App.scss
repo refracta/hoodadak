@@ -1,3 +1,10 @@
+/* Font */
+@import '@fontsource/roboto/300.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+
+/* Navbar */
 #main-navbar {
   height: 60px;
   background-color: #f8f8f8;
@@ -12,11 +19,7 @@
   }
 }
 
-.topography-pattern {
-  background-color: #ffffff;
-  background-image: url(../assets/background.svg);
-}
-
+/* MessageBox */
 .rce-container-mbox {
   margin-bottom: 10px;
 }
@@ -51,6 +54,15 @@
   max-width: 50vw;
 }
 
+/* Sidebar */
+@media (max-width: 768px) {
+  .ps-sidebar-root:not(.ps-toggled) {
+    left: calc(-80vw - 1px) !important;
+  }
+}
+
+/* Error overlay */
 iframe#webpack-dev-server-client-overlay {
   display: none;
 }
+

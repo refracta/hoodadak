@@ -4,11 +4,11 @@ import UserIcon from "../../../icons/UserIcon";
 import {User} from "../../../../types/hoodadak";
 
 export default function UserIconMenu({user, children, onClick, active, statusColor}: {
-    user: User,
-    onClick?: MouseEventHandler<HTMLAnchorElement>,
     active?: boolean,
     children?: React.ReactNode,
-    statusColor?: string
+    onClick?: MouseEventHandler<HTMLAnchorElement>,
+    statusColor?: string,
+    user: User
 }) {
     return (
         <MenuItem style={{height: '60px'}} onClick={onClick} active={active}>

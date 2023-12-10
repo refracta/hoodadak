@@ -3,26 +3,27 @@ import UserIconMenu from "./base/UserIconMenu";
 import {User} from "../../../types/hoodadak";
 
 export default function UserChatMenu({user, lastMessage, lastMessageTime, active, onClick, statusColor}: {
-    user: User,
+    active?: boolean,
     lastMessage: string,
     lastMessageTime: string,
-    active?: boolean,
+    onClick?: MouseEventHandler<HTMLAnchorElement>,
     statusColor?: string,
-    onClick?: MouseEventHandler<HTMLAnchorElement>
+    user: User
 }) {
+    const lastMessageStyle: React.CSSProperties = {
+        color: 'grey',
+        fontSize: 'smaller',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+    }
     return (
         <UserIconMenu user={user} onClick={onClick} active={active} statusColor={statusColor}>
             <div>
-                <div style={{color: 'grey', fontSize: 'smaller', float: 'right'}}>{lastMessageTime}</div>
-                <div style={{fontWeight: 'bold', fontSize: '14px'}}>{user.name}</div>
+                <div style={{color: 'grey', float: 'right', fontSize: 'smaller'}}>{lastMessageTime}</div>
+                <div style={{fontSize: '14px', fontWeight: 'bold'}}>{user.name}</div>
             </div>
-            <div style={{
-                color: 'grey',
-                fontSize: 'smaller',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-            }}>
+            <div style={lastMessageStyle}>
                 {lastMessage}
             </div>
         </UserIconMenu>
