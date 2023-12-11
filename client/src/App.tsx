@@ -15,7 +15,7 @@ const getWSEntrypoint = () => {
     let entrypoint = process.env.REACT_APP_BACKEND_ENTRYPOINT;
     entrypoint = entrypoint.replace('0.0.0.0', window.location.hostname)
     entrypoint = entrypoint ? entrypoint : window.location.host;
-    entrypoint = entrypoint.includes('://') ? entrypoint : window.location.protocol.startsWith('https') ? 'wss://' : 'ws://' + entrypoint;
+    entrypoint = entrypoint.includes('://') ? entrypoint : (window.location.protocol.startsWith('https') ? 'wss://' : 'ws://') + entrypoint;
     entrypoint += '/websocket';
     return entrypoint;
 }
