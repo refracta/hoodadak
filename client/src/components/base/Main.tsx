@@ -17,37 +17,36 @@ import {
     WSSelectUserMessage
 } from "../../types/hoodadak";
 import {GlobalContext} from "../../App";
+import ChatMessageBox from "../chat/ChatMessageBox";
 
+const getIceServers = () => {
+    return process.env.REACT_APP_ICE_SERVERS.split(',').map(s => {
+        let serverInfo = s.split(':');
+        let [type, host, port, username, credential] = serverInfo;
+        let urls = `${type}:${host}${port ? ':' + port : ''}`;
+        return {urls, username, credential};
+    }).filter(server => server.urls);
+}
 export default function Main({children}: {
     children?: React.ReactNode,
 }) {
     const context = useContext(GlobalContext);
-    const {
+    let {
         chat,
         chats,
         chatsDB,
         connectionStatus,
-        getWebSocket,
         lastJsonMessage,
-        lastMessage,
         messages,
         messagesDB,
         mode,
-        readyState,
         sendJsonMessage,
-        sendMessage,
-        setChat,
         setChats,
         setConnectionStatus,
         setMessages,
         setMode,
-        setToggled,
-        setUser,
         setUsers,
-        toggled,
         user,
-        userDB,
-        users,
     } = context;
     const [kickReason, setKickReason] = useState<string | undefined>(undefined);
     const [downloadProgress, setDownloadProgress] = React.useState<number>(0);
@@ -60,25 +59,25 @@ export default function Main({children}: {
         scrollChatContainer(250);
         scrollChatContainer(500);
         scrollChatContainer(1000);
-    }, [context.chat]);
+    }, [chat]);
 
     useEffect(() => {
         scrollChatContainer();
-    }, [context.mode]);
+    }, [mode]);
 
     useEffectOnce(() => {
-        if (context.user) {
-            delete (context.user as any)?.id;
-            context.sendJsonMessage({msg: WSMessageType.LOGIN, user: context.user} as WSLoginMessage);
+        if (user) {
+            delete (user as any)?.id;
+            sendJsonMessage({msg: WSMessageType.LOGIN, user: user} as WSLoginMessage);
         }
-    }, [context.user]);
+    }, [user]);
 
     useEffect(() => {
-        if (context.chat?.user) {
-            context.sendJsonMessage({msg: WSMessageType.SELECT_USER, user: context.chat?.user} as WSSelectUserMessage);
+        if (chat?.user) {
+            sendJsonMessage({msg: WSMessageType.SELECT_USER, user: chat?.user} as WSSelectUserMessage);
             closeConnection();
         }
-    }, [context.chat?.user]);
+    }, [chat?.user]);
 
     const mediaConstraints = {
         audio: true,            // We want an audio track
@@ -135,9 +134,6 @@ export default function Main({children}: {
             peerConnection.onsignalingstatechange = null;
             peerConnection.onicegatheringstatechange = null;
             peerConnection.onnegotiationneeded = null;
-
-            // Stop all transceivers on the connection
-
             peerConnection.getTransceivers().forEach(transceiver => {
                 try {
                     transceiver.stop();
@@ -157,7 +153,7 @@ export default function Main({children}: {
             peerConnection.close();
             setPeerConnection(peerConnection = undefined)
             setWebcamStream(webcamStream = undefined);
-            context.setConnectionStatus('disconnected');
+            setConnectionStatus('disconnected');
         }
     }
 
@@ -168,7 +164,7 @@ export default function Main({children}: {
 
             const handleDataChannelOpen = (event: Event) => {
                 console.log("dataChannelRaw.OnOpen", event);
-                context.setConnectionStatus('connected');
+                setConnectionStatus('connected');
             };
 
             let closeSide = false;
@@ -184,23 +180,23 @@ export default function Main({children}: {
                 console.log(data);
                 if (data.msg === 'ChangeMode') {
                     console.log('ChangeMode');
-                    context.setMode(mode = data.mode);
+                    setMode(mode = data.mode);
                     closeConnection();
                     closeSide = true;
                 } else if (data.msg === 'SendMessage') {
                     let message = data.message;
-                    message.user = context.chat?.user;
+                    message.user = chat?.user;
                     message.data.isMe = false;
                     if (message.data.type !== 'text') {
                         message.data.raw = raw;
                     }
 
-                    await context.messagesDB.add(message);
-                    context.setMessages(prevMessages => [...prevMessages, message]);
-                    context.chat!.lastMessageTime = new Date(message.data.time);
-                    context.chat!.lastMessage = message.data.type === 'text' ? message.data.raw : `[${message.data.type}] ${message.data.name}`;
-                    context.setChats(context.chats = [context.chat!, ...context.chats.filter(c => c.user.hash !== context.chat?.user.hash)]);
-                    await context.chatsDB.update(context.chat);
+                    await messagesDB.add(message);
+                    setMessages(prevMessages => [...prevMessages, message]);
+                    chat!.lastMessageTime = new Date(message.data.time);
+                    chat!.lastMessage = message.data.type === 'text' ? message.data.raw : `[${message.data.type}] ${message.data.name}`;
+                    setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+                    await chatsDB.update(chat);
 
                     scrollChatContainer(250);
                     scrollChatContainer(500);
@@ -257,7 +253,6 @@ export default function Main({children}: {
             // fileChannel.onclose = handleFileChannelClose;
 
             peerConnection!.ondatachannel = (event) => {
-                console.log("on data dataChannelRaw")
                 let receiveChannel = event.channel;
                 if (receiveChannel.label === "chat") {
                     receiveChannel.onopen = handleDataChannelOpen;
@@ -283,20 +278,13 @@ export default function Main({children}: {
 
     function createPeerConnection(mode: 'chat' | 'video') {
         const connection = new RTCPeerConnection({
-            iceServers: [
-                {urls: "stun:stun.l.google.com:19302"},
-                {
-                    urls: "turn:freeturn.net:3478",
-                    credential: 'free',
-                    username: 'free'
-                }
-            ]
+            iceServers: getIceServers()
         });
 
         connection.onicecandidate = function handleICECandidateEvent(event) {
             if (event.candidate) {
                 console.log("Candidate:", event.candidate.candidate);
-                context.sendJsonMessage({
+                sendJsonMessage({
                     msg: WSMessageType.RTC_ICE_EXCHANGE,
                     candidate: event.candidate
                 } as WSRTCICEExchangeMessage)
@@ -335,7 +323,7 @@ export default function Main({children}: {
                 }
                 await connection.setLocalDescription(offer);
                 setTimeout(_ => {
-                    context.sendJsonMessage({
+                    sendJsonMessage({
                         msg: WSMessageType.RTC_SDP_EXCHANGE,
                         sdp: connection.localDescription,
                         mode
@@ -355,8 +343,8 @@ export default function Main({children}: {
     async function startRTC(mode: 'chat' | 'video') {
         console.log('startRTC Mode: ', mode);
         initPeerConnection(mode);
-        await initWebcamStream();
         if (mode === 'video') {
+            await initWebcamStream();
             addTransceiver();
         }
         addDataChannel();
@@ -364,19 +352,19 @@ export default function Main({children}: {
 
     (global as any).startRTC = startRTC;
     useEffect(() => {
-        let message: WSMessage = context.lastJsonMessage;
+        let message: WSMessage = lastJsonMessage;
         if (!message) return;
         if (message.msg === WSMessageType.KICK) {
             setKickReason(message.reason);
         } else if (message.msg === WSMessageType.USERS) {
-            context.setUsers(message.users);
+            setUsers(message.users);
         } else if (message.msg === WSMessageType.RTC_START) {
             startRTC(message.mode);
         } else if (message.msg === WSMessageType.RTC_SDP_EXCHANGE && message?.sdp?.type === 'offer') {
             (async () => {
                 console.log('RTC_SDP_EXCHANGE - offer');
                 let mode = message.mode;
-                context.setMode(mode);
+                setMode(mode);
                 initPeerConnection(mode);
                 let desc = new RTCSessionDescription(message.sdp);
                 if (peerConnection?.signalingState != "stable") {
@@ -389,14 +377,14 @@ export default function Main({children}: {
                     await peerConnection?.setRemoteDescription(desc);
                 }
                 if (!webcamStream) {
-                    await initWebcamStream();
                     if (mode === 'video') {
+                        await initWebcamStream();
                         addTransceiver();
                     }
                     addDataChannel();
                 }
                 await peerConnection.setLocalDescription(await peerConnection.createAnswer());
-                context.sendJsonMessage({
+                sendJsonMessage({
                     msg: WSMessageType.RTC_SDP_EXCHANGE,
                     sdp: peerConnection?.localDescription,
                     mode
@@ -404,7 +392,7 @@ export default function Main({children}: {
             })();
         } else if (message.msg === WSMessageType.RTC_SDP_EXCHANGE && message?.sdp?.type === 'answer') {
             (async () => {
-                context.setMode(context.mode);
+                setMode(mode);
                 console.log('RTC_SDP_EXCHANGE - ANSWER');
                 const desc = new RTCSessionDescription(message.sdp);
                 await peerConnection?.setRemoteDescription(desc).catch(reportError);
@@ -418,7 +406,7 @@ export default function Main({children}: {
         } else {
             console.log(message);
         }
-    }, [context.lastJsonMessage]);
+    }, [lastJsonMessage]);
 
 
     const [message, setMessage] = React.useState('');
@@ -431,15 +419,15 @@ export default function Main({children}: {
     };
     const handleSendMessage = async () => {
         let msg: Message = {
-            user: context.chat?.user,
+            user: chat?.user,
             data: {raw: message, time: new Date(), type: 'text', isMe: true}
         } as Message;
-        await context.messagesDB.add(msg);
-        context.setMessages([...context.messages, msg]);
-        context.chat!.lastMessageTime = new Date(msg.data.time);
-        context.chat!.lastMessage = msg.data.raw;
-        context.setChats(context.chats = [context.chat!, ...context.chats.filter(c => c.user.hash !== context.chat?.user.hash)]);
-        await context.chatsDB.update(context.chat);
+        await messagesDB.add(msg);
+        setMessages([...messages, msg]);
+        chat!.lastMessageTime = new Date(msg.data.time);
+        chat!.lastMessage = msg.data.raw;
+        setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+        await chatsDB.update(chat);
 
         setMessage('');
         dataChannel?.send(JSON.stringify({
@@ -450,16 +438,17 @@ export default function Main({children}: {
 
     function updateProgress(type: string, sentBytes: number, totalBytes: number) {
         const progress = sentBytes / totalBytes;
+        const isComplete = progress === 1;
         if (type === 'receive') {
             setDownloadProgress(Math.floor(progress * 100));
-            if (progress === 1) {
+            if (isComplete) {
                 setTimeout(_ => {
                     setDownloadProgress(0);
                 }, 1000);
             }
         } else {
             setUploadProgress(Math.floor(progress * 100));
-            if (progress === 1) {
+            if (isComplete) {
                 setTimeout(_ => {
                     setUploadProgress(0);
                 }, 1000);
@@ -480,11 +469,12 @@ export default function Main({children}: {
         }
 
         let msg: Message = {
-            user: context.chat?.user,
+            user: chat?.user,
             data: {raw: file, time: new Date(), name: file.name, type, isMe: true}
         } as Message;
 
-        const chunkSize = 16384; // 16 KB
+        const chunkSize = 16384;
+        // TODO 환경 변수 처리
         let offset = 0;
         const fileReader = new FileReader();
         fileReader.onload = async (e) => {
@@ -494,14 +484,12 @@ export default function Main({children}: {
             if (offset === file.size) {
                 dataChannel?.send(JSON.stringify({msg: 'FileComplete'}));
                 dataChannel?.send(JSON.stringify({msg: 'SendMessage', message: msg}));
-                await context.messagesDB.add(msg);
-                context.setMessages([...context.messages, msg]);
-                context.chat!.lastMessageTime = new Date(msg.data.time);
-                context.chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
-                context.setChats(context.chats = [context.chat!, ...context.chats.filter(c => c.user.hash !== context.chat?.user.hash)]);
-                await context.chatsDB.update(context.chat);
-
-
+                await messagesDB.add(msg);
+                setMessages([...messages, msg]);
+                chat!.lastMessageTime = new Date(msg.data.time);
+                chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
+                setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+                await chatsDB.update(chat);
                 scrollChatContainer(250);
                 scrollChatContainer(500);
                 scrollChatContainer(1000);
@@ -520,216 +508,90 @@ export default function Main({children}: {
         readSlice(0);
     };
     const modeChangeHandler = () => {
-        let mode;
-        if (context.mode === 'chat') {
-            context.setMode(mode = 'video');
+        if (mode === 'chat') {
+            setMode(mode = 'video');
         } else {
-            context.setMode(mode = 'chat');
+            setMode(mode = 'chat');
         }
         dataChannel?.send(JSON.stringify({msg: 'ChangeMode', mode}));
     }
+    const chatMessages = messages.filter(m => m.user.hash === chat?.user.hash);
     return (
-        <>
+        <Box sx={{display: 'flex', height: '100vh', overflowY: 'hidden'}}>
             {kickReason && <KickOverlay reason={kickReason}/>}
-            <Box sx={{display: 'flex', height: '100vh', overflowY: 'hidden'}}>
-                <Aside/>
-                <ChatPage modeChangeHandler={modeChangeHandler}>
-                    <div style={{
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between'
-                    }}>
-                        <div ref={chatContainer} style={{overflowY: 'auto'}}>
-                            <div
-                                style={{height: '100%', display: context.mode == 'chat' ? 'block' : 'none'}}>
-                                {context.messages.filter(m => m.user.hash === context.chat?.user.hash).map((m, i) => {
-                                    const downloadBlob = (blob: Blob, filename: string) => {
-                                        const url = URL.createObjectURL(blob);
-
-                                        const a = document.createElement('a');
-                                        a.href = url;
-                                        a.download = filename;
-                                        document.body.appendChild(a);
-                                        a.click();
-
-                                        // URL과 a 태그를 정리합니다.
-                                        URL.revokeObjectURL(url);
-                                        document.body.removeChild(a);
-                                    }
-
-                                    if (m.data.type === 'text') {
-                                        return (
-                                            <MessageBox
-                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
-                                                type='text' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
-                                                text={((text: any) => {
-                                                    let textSplit = text.split('\n');
-                                                    return textSplit.map((line: string, index: number) => (
-                                                        <React.Fragment key={index}>
-                                                            {line}
-                                                            {textSplit.length - 1 === index ? <></> : <br/>}
-                                                        </React.Fragment>
-                                                    ));
-                                                })(m.data.raw)}
-                                                title={''}
-                                                date={m.data.time}
-                                                focus={false}
-                                                titleColor={'black'}
-                                                forwarded={false} replyButton={false}
-                                                removeButton={false} status={'sent'} notch={true}
-                                                retracted={false}/>);
-                                    } else if (m.data.type === 'image') {
-                                        return (
-                                            <MessageBox
-                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
-                                                type='photo' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
-                                                text={''}
-                                                data={{
-                                                    uri: URL.createObjectURL(m.data.raw),
-                                                    name: m.data.name,
-                                                    status: {click: false, loading: 0}
-                                                }}
-                                                onClick={() => {
-                                                    downloadBlob(m.data.raw, m.data.name!)
-                                                }}
-                                                title={m.data.name!}
-                                                date={m.data.time}
-                                                focus={false}
-                                                titleColor={'black'}
-                                                forwarded={false} replyButton={false}
-                                                removeButton={false} status={'sent'} notch={true}
-                                                retracted={false}/>);
-                                    } else if (m.data.type === 'video') {
-                                        return (
-                                            <MessageBox
-                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
-                                                type='video' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
-                                                text={''}
-                                                controlsList={''}
-                                                data={{
-                                                    videoURL: URL.createObjectURL(m.data.raw),
-                                                    name: m.data.name,
-                                                    status: {
-                                                        click: false, loading: 0.5,
-                                                        download: true
-                                                    }
-                                                }}
-                                                title={m.data.name!}
-                                                date={m.data.time}
-                                                focus={false}
-                                                titleColor={'black'}
-                                                forwarded={false} replyButton={false}
-                                                removeButton={false} status={'sent'} notch={true}
-                                                retracted={false}/>);
-                                    } else if (m.data.type === 'audio') {
-                                        return (
-                                            <MessageBox
-                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
-                                                type='audio' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
-                                                text={''}
-                                                data={{
-                                                    audioURL: URL.createObjectURL(m.data.raw),
-                                                    name: m.data.name,
-                                                }}
-                                                title={m.data.name!}
-                                                date={m.data.time}
-                                                focus={false}
-                                                titleColor={'black'}
-                                                forwarded={false} replyButton={false}
-                                                removeButton={false} status={'sent'} notch={true}
-                                                retracted={false}/>);
-                                    } else if (m.data.type === 'file') {
-                                        return (
-                                            <MessageBox
-                                                className={m.data.isMe ? 'rce-mbox-custom-right' : 'rce-mbox-custom-left'}
-                                                type='file' key={i} id={i} position={m.data.isMe ? 'right' : 'left'}
-                                                text={m.data.name!}
-                                                data={{
-                                                    uri: URL.createObjectURL(m.data.raw),
-                                                    name: m.data.name,
-                                                    status: {
-                                                        click: false,
-                                                        loading: 0,
-                                                    }
-                                                }}
-                                                onClick={() => {
-                                                    downloadBlob(m.data.raw, m.data.name!)
-                                                }}
-                                                title={''}
-                                                date={m.data.time}
-                                                focus={false}
-                                                titleColor={'black'}
-                                                forwarded={false} replyButton={false}
-                                                removeButton={false} status={'sent'} notch={true}
-                                                retracted={false}/>);
-                                    }
-                                })}
-
-                            </div>
-
-                            <div style={{height: '100%', display: context.mode == 'video' ? 'block' : 'none'}}>
-                                <video style={{
-                                    width: '100%',
-                                    height: 'calc(50% - 8px)',
-                                    margin: 0,
-                                    marginTop: '8px'
-                                }} ref={remoteVideo} autoPlay></video>
-                                <video style={{
-                                    width: '100%',
-                                    height: 'calc(50% - 8px)',
-                                    margin: 0
-                                }} ref={localVideo} autoPlay muted></video>
-                            </div>
+            <Aside/>
+            <ChatPage modeChangeHandler={modeChangeHandler}>
+                <div style={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                }}>
+                    <div ref={chatContainer} style={{overflowY: 'auto'}}>
+                        <div
+                            style={{height: '100%', display: mode == 'chat' ? 'block' : 'none'}}>
+                            {chatMessages.map(m => <ChatMessageBox key={new Date(m.data.time).getTime()} message={m}/>)}
                         </div>
-                        <Paper component="form"
-                               sx={{
-                                   display: 'flex',
-                                   alignItems: 'center',
-                                   width: 'calc(100% - 3px - 20px)',
-                                   margin: '10px 10px 10px 10px',
-                                   border: 'solid 1.5px #1976d2',
-                                   borderRadius: '30px'
-                               }}>
-                            <IconButton style={{
-                                background: `linear-gradient(to top, rgba(100, 181, 246, 0.7) ${uploadProgress}%, transparent ${uploadProgress}%),
-            linear-gradient(to bottom, rgba(244, 67, 54, 0.7) ${downloadProgress}%, transparent ${downloadProgress}%)`
-                            }} disabled={context.connectionStatus === 'disconnected'} sx={{p: '10px'}}
-                                        aria-label="upload picture" component="label">
-                                <input hidden accept="*" type="file" onChange={handleFileUpload}/>
-                                <AttachFileIcon/>
-                            </IconButton>
-                            <TextField
-                                disabled={context.connectionStatus === 'disconnected'}
-                                multiline
-                                maxRows={4} // You can specify the maximum number of rows
-                                placeholder="Type a message"
-                                variant="standard" // This removes the underline and border from the TextField
-                                InputProps={{disableUnderline: true}} // This also helps in removing the underline
-                                sx={{ml: 1, flex: 1}}
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                onKeyPress={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        if (message.length === 0) {
-                                            return;
-                                        }
-                                        handleSendMessage();
-                                    }
-                                }
-                                }
-                            />
-                            <IconButton sx={{p: '10px'}} aria-label="send" disabled={message.length == 0}
-                                        onClick={handleSendMessage}>
-                                <SendIcon/>
-                            </IconButton>
-                        </Paper>
+
+                        <div style={{height: '100%', display: mode == 'video' ? 'block' : 'none'}}>
+                            <video style={{
+                                width: '100%',
+                                height: 'calc(50% - 8px)',
+                                margin: 0,
+                                marginTop: '8px'
+                            }} ref={remoteVideo} autoPlay></video>
+                            <video style={{
+                                width: '100%',
+                                height: 'calc(50% - 8px)',
+                                margin: 0
+                            }} ref={localVideo} autoPlay muted></video>
+                        </div>
                     </div>
-
-
-                </ChatPage>
-            </Box>
-        </>
+                    <Paper component="form"
+                           sx={{
+                               display: 'flex',
+                               alignItems: 'center',
+                               width: 'calc(100% - 3px - 20px)',
+                               margin: '10px 10px 10px 10px',
+                               border: 'solid 1.5px #1976d2',
+                               borderRadius: '30px'
+                           }}>
+                        <IconButton style={{
+                            background: `linear-gradient(to top, rgba(100, 181, 246, 0.7) ${uploadProgress}%, transparent ${uploadProgress}%),
+            linear-gradient(to bottom, rgba(244, 67, 54, 0.7) ${downloadProgress}%, transparent ${downloadProgress}%)`
+                        }} disabled={connectionStatus === 'disconnected'} sx={{p: '10px'}}
+                                    aria-label="upload picture" component="label">
+                            <input hidden accept="*" type="file" onChange={handleFileUpload}/>
+                            <AttachFileIcon/>
+                        </IconButton>
+                        <TextField
+                            disabled={connectionStatus === 'disconnected'}
+                            multiline
+                            maxRows={4} // You can specify the maximum number of rows
+                            placeholder="Type a message"
+                            variant="standard" // This removes the underline and border from the TextField
+                            InputProps={{disableUnderline: true}} // This also helps in removing the underline
+                            sx={{ml: 1, flex: 1}}
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (message.length === 0) {
+                                        return;
+                                    }
+                                    handleSendMessage().catch(reportError);
+                                }
+                            }
+                            }
+                        />
+                        <IconButton sx={{p: '10px'}} aria-label="send" disabled={message.length == 0}
+                                    onClick={handleSendMessage}>
+                            <SendIcon/>
+                        </IconButton>
+                    </Paper>
+                </div>
+            </ChatPage>
+        </Box>
     );
 };

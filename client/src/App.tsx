@@ -12,19 +12,11 @@ import useDatabaseData from "./hooks/useDatabaseData";
 
 const getWSEntrypoint = () => {
     let entrypoint = process.env.REACT_APP_BACKEND_ENTRYPOINT;
+    entrypoint = entrypoint.replace('0.0.0.0', window.location.hostname)
     entrypoint = entrypoint ? entrypoint : window.location.host;
     entrypoint = entrypoint.includes('://') ? entrypoint : window.location.protocol.startsWith('https') ? 'wss://' : 'ws://' + entrypoint;
     entrypoint += '/websocket';
     return entrypoint;
-}
-
-const getIceServers = () => {
-    return process.env.REACT_APP_ICE_SERVERS.split(',').map(s => {
-        let serverInfo = s.split(':');
-        let [type, host, port, username, credential] = serverInfo;
-        let urls = `${type}:${host}${port ? ':' + port : ''}`;
-        return {urls, username, credential};
-    }).filter(server => server.urls);
 }
 
 initDB(DBConfig);
