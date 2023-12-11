@@ -33,22 +33,6 @@ export default function StartPage() {
         height: '100vh'
     };
 
-    const NameTextField = () => (
-        <TextField
-            inputProps={{maxLength: 20}}
-            margin="normal"
-            required
-            fullWidth
-            id="name"
-            label="Name"
-            name="name"
-            autoComplete="name"
-            autoFocus
-            value={name}
-            onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-        />
-    );
-
     const EnterButton = () => (
         <Button
             type="submit"
@@ -72,7 +56,19 @@ export default function StartPage() {
                 <Typography variant="body2" style={{textAlign: 'center', marginBottom: '1rem', color: "#707579"}}>
                     Fast and lightweight direct messenger
                 </Typography>
-                <NameTextField/>
+                <TextField
+                    inputProps={{maxLength: 20}}
+                    margin="normal"
+                    required
+                    fullWidth
+                    id="name"
+                    label="Name"
+                    name="name"
+                    autoComplete="name"
+                    autoFocus
+                    value={name}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+                />
                 <EnterButton/>
             </Box>
         </Container>
