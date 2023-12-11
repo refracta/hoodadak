@@ -6,7 +6,7 @@ import {GlobalContext} from "../../App";
 
 export default function StartPage() {
     const {
-        userDB, setUser, settingDB
+        userDB, setUser, settingDB, setSetting
     } = useContext(GlobalContext);
     const [name, setName] = useState<string>('');
 
@@ -17,6 +17,7 @@ export default function StartPage() {
             useWaitingNotification: true
         };
         await settingDB.add(setting);
+        setSetting(setting);
         let uuid = v4();
         let user = {
             name, uuid, hash: CryptoJS.SHA512(name + uuid).toString()
