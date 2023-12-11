@@ -1,9 +1,10 @@
 import {RawData} from 'ws';
 import {DateUtils} from '../../../utils/DateUtils';
 import {
-    WSHelloMessage,
     WSLoginMessage,
-    WSMessageType, WSRTCICEExchangeMessage, WSRTCSDPExchangeMessage,
+    WSMessageType,
+    WSRTCICEExchangeMessage,
+    WSRTCSDPExchangeMessage,
     WSSelectUserMessage
 } from "../../../types/hoodadak";
 import {DefaultWSocket, DefaultWSServer, WebSocketHandle, WebSocketHandler} from "../../../types/hoodadak-server";
@@ -13,10 +14,6 @@ export default class DefaultWSHandler implements WebSocketHandler<DefaultWSServe
     readonly handles: { [messageType: string]: WebSocketHandle } = {};
 
     constructor() {
-        this.handles[WSMessageType.HELLO] = async (server: DefaultWSServer, socket: DefaultWSocket, data: WSHelloMessage) => {
-            console.log(`[${DateUtils.getConsoleTime()}]`, data);
-        };
-
         this.handles[WSMessageType.LOGIN] = async (server: DefaultWSServer, socket: DefaultWSocket, data: WSLoginMessage) => {
             let user = data.user;
             let otherSessions = server.sockets.filter(s => s.data?.user?.uuid === user.uuid);
@@ -56,7 +53,7 @@ export default class DefaultWSHandler implements WebSocketHandler<DefaultWSServe
             let {user, selectedUser, isCoupled, selectedUserSocket} = getCoupledInfo(server, socket);
             if (isCoupled) {
                 server.manager.sendUsers();
-                server.manager.sendRTCStart('chat', [selectedUserSocket]);
+                server.manager.sendRTCStart([selectedUserSocket]);
                 console.log(user.name, selectedUser.name);
             }
         };
@@ -64,15 +61,15 @@ export default class DefaultWSHandler implements WebSocketHandler<DefaultWSServe
         this.handles[WSMessageType.RTC_SDP_EXCHANGE] = async (server: DefaultWSServer, socket: DefaultWSocket, data: WSRTCSDPExchangeMessage) => {
             let {user, selectedUser, isCoupled, selectedUserSocket} = getCoupledInfo(server, socket);
             if (isCoupled) {
-                server.manager.sendRTCSDPExchange(data.sdp, data.mode,[selectedUserSocket]);
-                console.log('sdp exchange - ', data?.sdp?.type, data?.sdp?.sdp.substring(0, 10));
+                server.manager.sendRTCSDPExchange(data.mode, data.sdp, [selectedUserSocket]);
+                console.log(`[${data.mode}] SDP ${data.sdp?.type?.toUpperCase()} ${socket.data.user.name} > ${selectedUserSocket?.data.user.name}`);
             }
         }
 
         this.handles[WSMessageType.RTC_ICE_EXCHANGE] = async (server: DefaultWSServer, socket: DefaultWSocket, data: WSRTCICEExchangeMessage) => {
             let {user, selectedUser, isCoupled, selectedUserSocket} = getCoupledInfo(server, socket);
             if (isCoupled) {
-                server.manager.sendRTCICEExchange(data.candidate, [selectedUserSocket]);
+                server.manager.sendRTCICEExchange(data.mode, data.candidate, [selectedUserSocket]);
             }
         }
     }

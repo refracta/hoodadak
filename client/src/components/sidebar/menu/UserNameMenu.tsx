@@ -3,13 +3,13 @@ import UserIconMenu from "./base/UserIconMenu";
 import {User} from "../../../types/hoodadak";
 
 export default function UserNameMenu({user, onClick, statusColor}: {
-    user: User,
     onClick?: MouseEventHandler<HTMLAnchorElement>,
-    statusColor?: string
+    statusColor?: string,
+    user: User
 }) {
     return (
         <UserIconMenu user={user} onClick={onClick} statusColor={statusColor}>
-            <div style={{fontWeight: 'bold', fontSize: '14px'}}>{user.name}</div>
+            <div style={{fontSize: '14px', fontWeight: 'bold'}}>{user.name}</div>
         </UserIconMenu>
     );
 };
