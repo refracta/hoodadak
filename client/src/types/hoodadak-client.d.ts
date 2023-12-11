@@ -34,13 +34,13 @@ export type AppContext = {
     setConnectionStatus: Dispatch<SetStateAction<'connected' | 'disconnected'>>;
     setMessages: Dispatch<SetStateAction<Message[]>>;
     setMode: Dispatch<SetStateAction<'chat' | 'video'>>;
-    // setSetting: (setting: Setting) => void;
+    setSetting: (setting: Setting) => void;
     setToggled: Dispatch<SetStateAction<boolean>>;
     setUser: (user: User) => void;
     setUsers: Dispatch<SetStateAction<User[]>>;
-    // setting: Setting | undefined;
-    // settingDB: IndexedDB;
-    // settingData: Setting[];
+    setting: Setting | undefined;
+    settingDB: IndexedDB;
+    settingData: Setting[];
     toggled: boolean;
     user: User | undefined;
     userDB: IndexedDB;

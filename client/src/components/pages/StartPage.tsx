@@ -1,14 +1,12 @@
 import React, {ChangeEvent, FormEvent, useContext, useState} from "react";
 import {v4} from 'uuid';
-import {useIndexedDB} from "react-indexed-db-hook";
 import {Box, Button, Container, TextField, Typography} from "@mui/material";
-import {User} from "../../types/hoodadak";
 import CryptoJS from 'crypto-js';
 import {GlobalContext} from "../../App";
 
 export default function StartPage() {
-    const {userDB, setUser,
-        // settingDB
+    const {
+        userDB, setUser, settingDB
     } = useContext(GlobalContext);
     const [name, setName] = useState<string>('');
 
@@ -18,7 +16,7 @@ export default function StartPage() {
             useTurnServer: true,
             useWaitingNotification: true
         };
-        // await settingDB.add(setting);
+        await settingDB.add(setting);
         let uuid = v4();
         let user = {
             name, uuid, hash: CryptoJS.SHA512(name + uuid).toString()

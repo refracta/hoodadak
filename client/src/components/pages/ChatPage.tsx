@@ -1,4 +1,4 @@
-import React, {useCallback, useContext, useEffect, useRef} from "react";
+import React, {useContext, useEffect, useRef} from "react";
 import {Box} from "@mui/material";
 import ChatToolbar from "./chat/ChatToolbar";
 import ChatContainerWrapper from "./chat/ChatLayoutContainer";
@@ -6,7 +6,7 @@ import ChatMessageBox from "../chat/ChatMessageBox";
 import ChatControl from "./chat/ChatControl";
 import {GlobalContext} from "../../App";
 import useEffectOnce from "../../hooks/useEffectOnce";
-import {Message, MessageType, RTCMessageType, User, WSMessage, WSMessageType} from "../../types/hoodadak";
+import {Chat, Message, MessageType, RTCMessageType, User, WSMessage, WSMessageType} from "../../types/hoodadak";
 import useWebRTC from "../../hooks/useWebRTC";
 
 
@@ -16,6 +16,7 @@ export default function ChatPage() {
     const context = useContext(GlobalContext);
     let {
         chat,
+        setChat,
         chats,
         chatsDB,
         connectionStatus,
@@ -30,13 +31,13 @@ export default function ChatPage() {
         setMessages,
         setMode,
         setUsers,
-        // setting,
-        // settingData,
+        setting,
+        settingData,
         user,
         users
     } = context;
 
-/*    useEffect(() => {
+    useEffect(() => {
         if (setting?.useWaitingNotification) {
             if (Notification.permission !== "denied") {
                 Notification.requestPermission().then((permission) => {
@@ -44,7 +45,7 @@ export default function ChatPage() {
                 });
             }
         }
-    }, [settingData]);*/
+    }, [settingData]);
 
     let receivedBuffers: ArrayBuffer[] = [];
     let raw: Blob;
@@ -127,19 +128,19 @@ export default function ChatPage() {
             chatRTC.close();
             videoRTC.close();
         }
-    }, [chat?.user, chatRTC, videoRTC]);
+    }, [chat?.user]);
 
     useEffect(() => {
         let message: WSMessage = lastJsonMessage;
         if (message?.msg === WSMessageType.USERS) {
-            /*const oldUsers = users.filter((u: User) => u?.selectedUser?.hash === user?.hash);
-            const newUsers = message.users.filter((u: User) => u?.selectedUser?.hash === user?.hash) as User[];
-            const targetUsers = newUsers.filter(n => !oldUsers.find(o => o.hash === n.hash));
-            for (let user of targetUsers) {
-                // sendNotification(`${user.name}`);
-            }*/
-            console.log(lastMessage)
-            console.log(121243);
+            if (setting?.useWaitingNotification) {
+                const oldUsers = users.filter((u: User) => u?.selectedUser?.hash === user?.hash);
+                const newUsers = message.users.filter((u: User) => u?.selectedUser?.hash === user?.hash) as User[];
+                const targetUsers = newUsers.filter(n => !oldUsers.find(o => o.hash === n.hash));
+                for (let user of targetUsers) {
+                    sendWaitingNotification(user);
+                }
+            }
             setUsers(message.users);
         } else if (message?.msg === WSMessageType.RTC_START) {
             chatRTC.start().catch(reportError);
@@ -160,15 +161,29 @@ export default function ChatPage() {
             }
         }, delay);
     };
-    const sendNotification = () => {
+    const sendWaitingNotification = (user: User) => {
         if (Notification.permission === "granted") {
             const notification = new Notification("Hoodadak", {
                 icon: 'logo.svg',
-                body: "여기에 메시지 내용을 작성하세요.",
+                body: `${user.name} is waiting for your connection.`
             });
+
+            notification.onclick = async () => {
+                let chat = chats.find(c => user.hash === c.user.hash);
+                let nameBasedChat = chats.find(c => user.name === c.user.name && !c.user.hash);
+                if (nameBasedChat) {
+                    chat = nameBasedChat;
+                }
+                if (!chat) {
+                    chat = {user, lastMessage: ''};
+                    let id = await chatsDB.add(chat);
+                    chat = {...chat, id};
+                    setChats(await chatsDB.getAll() as Chat[]);
+                }
+                setChat(chat);
+            };
         }
     }
-
 
     useEffectOnce(() => {
         let isNeedScroll = isMaxScrollHeight();

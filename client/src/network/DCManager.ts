@@ -1,10 +1,10 @@
 import {
     Message,
-    RTCModeChangeMessage,
     RTCConnectionMode,
     RTCFileCompleteMessage,
     RTCFileStartMessage,
     RTCMessageType,
+    RTCModeChangeMessage,
     RTCSendMsgMessage
 } from "../types/hoodadak";
 

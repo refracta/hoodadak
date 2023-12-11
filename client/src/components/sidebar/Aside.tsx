@@ -47,9 +47,9 @@ export default function Aside() {
         chats,
         chat,
         toggled,
-        // setting,
-        // settingDB,
-        // setSetting
+        setting,
+        settingDB,
+        setSetting
     } = context;
     const [activeTab, setActiveTab] = useState<string>('user');
     const {width} = useWindowSize();
@@ -74,6 +74,10 @@ export default function Aside() {
 
     const onUserNameMenuClick = async (user: User) => {
         let chat = chats.find(c => user.hash === c.user.hash);
+        let nameBasedChat = chats.find(c => user.name === c.user.name && !c.user.hash);
+        if (nameBasedChat) {
+            chat = nameBasedChat;
+        }
         if (!chat) {
             chat = {user, lastMessage: ''};
             let id = await chatsDB.add(chat);
@@ -168,12 +172,12 @@ export default function Aside() {
                                                     <Switch
                                                         // checked={setting?.useTurnServer}
                                                         onChange={
-                                                        async (e, checked) => {
-                                                            // setting!.useTurnServer = checked;
-                                                            // await settingDB.update(setting);
-                                                            // setSetting(setting!);
-                                                        }
-                                                    }/>
+                                                            async (e, checked) => {
+                                                                setting!.useTurnServer = checked;
+                                                                await settingDB.update(setting);
+                                                                setSetting(setting!);
+                                                            }
+                                                        }/>
                                                 </ListItemSecondaryAction>
                                             </ListItem>
                                             <Divider/>
@@ -181,14 +185,14 @@ export default function Aside() {
                                                 <ListItemText primary="Use waiting notification"/>
                                                 <ListItemSecondaryAction>
                                                     <Switch
-                                                        // checked={setting?.useWaitingNotification}
+                                                        checked={setting?.useWaitingNotification}
                                                         onChange={
-                                                        async (e, checked) => {
-                                                            // setting!.useWaitingNotification = checked;
-                                                            // await settingDB.update(setting);
-                                                            // setSetting(setting!);
-                                                        }
-                                                    }/>
+                                                            async (e, checked) => {
+                                                                setting!.useWaitingNotification = checked;
+                                                                await settingDB.update(setting);
+                                                                setSetting(setting!);
+                                                            }
+                                                        }/>
                                                 </ListItemSecondaryAction>
                                             </ListItem>
                                             <ListItem>
@@ -200,7 +204,7 @@ export default function Aside() {
                                                             await context.userDB.clear();
                                                             await context.messagesDB.clear();
                                                             await context.chatsDB.clear();
-                                                            // await context.settingDB.clear();
+                                                            await context.settingDB.clear();
                                                             window.location.reload();
                                                         }
                                                     }}

@@ -11,12 +11,12 @@ import {
 export default class WSManager {
     private readonly sendHandler: (data: any) => void;
 
-    json(data: any) {
-        this.sendHandler(data);
-    }
-
     constructor(sendHandler: (data: any) => void) {
         this.sendHandler = sendHandler;
+    }
+
+    json(data: any) {
+        this.sendHandler(data);
     }
 
     sendLoginMessage(user: User) {

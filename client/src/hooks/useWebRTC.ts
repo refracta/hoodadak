@@ -17,9 +17,7 @@ export default function useWebRTC(config: {
     chatChannelConfigurator?: DataChannelConfigurator,
     mediaConstraints?: MediaStreamConstraints,
     mode: RTCConnectionMode
-}, {wsManager, lastJsonMessage,
-    // setting
-}: AppContext) {
+}, {wsManager, lastJsonMessage, setting}: AppContext) {
     const getIceServers = () => {
         let iceServers = process.env.REACT_APP_ICE_SERVERS.split(',').map(s => {
             let serverInfo = s.split(':');
@@ -27,9 +25,9 @@ export default function useWebRTC(config: {
             let urls = `${type}:${host}${port ? ':' + port : ''}`;
             return {urls, username, credential};
         }).filter(server => server.urls);
-       /* if (!setting?.useTurnServer) {
+        if (!setting?.useTurnServer) {
             iceServers = iceServers.filter(server => !server.urls.toLowerCase().includes('turn'));
-        }*/
+        }
         return iceServers;
     }
     let [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
@@ -79,7 +77,6 @@ export default function useWebRTC(config: {
                 }
             });
             peerConnection.close();
-            // setConnectionStatus('disconnected');
         }
         setPeerConnection(peerConnection = undefined);
         if (localVideo.current?.srcObject) {

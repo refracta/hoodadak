@@ -1,4 +1,4 @@
-import React, {useEffect, useLayoutEffect} from "react";
+import React, {useEffect} from "react";
 import {IMessage, MessageBox} from "react-chat-elements";
 import {Message} from "../../types/hoodadak";
 
@@ -55,7 +55,7 @@ export default function ChatMessageBox({message, isMaxScrollHeight, scrollToBott
     }
 
     useEffect(() => {
-        if(isNeedScroll && scrollToBottom) {
+        if (isNeedScroll && scrollToBottom) {
             scrollToBottom();
         }
     }, []);
