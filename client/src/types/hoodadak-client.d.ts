@@ -1,5 +1,5 @@
 import {Dispatch, SetStateAction} from "react";
-import {Chat, Message, User} from "./hoodadak";
+import {Chat, Message, Setting, User} from "./hoodadak";
 import {JsonValue, ReadyState, SendJsonMessage, SendMessage, WebSocketLike} from "react-use-websocket";
 import {Key} from "react-indexed-db-hook/lib/indexed-db";
 import WSManager from "../network/WSManager";
@@ -18,7 +18,7 @@ export type IndexedDB = {
 export type AppContext = {
     chat: Chat | undefined;
     chats: Chat[];
-    chatsDB: IndexedDB;
+    chatsDB: IndexedDB,
     connectionStatus: 'connected' | 'disconnected';
     getWebSocket: () => (WebSocketLike | null);
     lastJsonMessage: JsonValue | null;
@@ -28,20 +28,24 @@ export type AppContext = {
     mode: 'chat' | 'video';
     readyState: ReadyState;
     sendJsonMessage: SendJsonMessage;
-    wsManager: WSManager;
     sendMessage: SendMessage;
     setChat: Dispatch<SetStateAction<Chat | undefined>>;
     setChats: Dispatch<SetStateAction<Chat[]>>;
     setConnectionStatus: Dispatch<SetStateAction<'connected' | 'disconnected'>>;
     setMessages: Dispatch<SetStateAction<Message[]>>;
     setMode: Dispatch<SetStateAction<'chat' | 'video'>>;
+    // setSetting: (setting: Setting) => void;
     setToggled: Dispatch<SetStateAction<boolean>>;
     setUser: (user: User) => void;
     setUsers: Dispatch<SetStateAction<User[]>>;
+    // setting: Setting | undefined;
+    // settingDB: IndexedDB;
+    // settingData: Setting[];
     toggled: boolean;
     user: User | undefined;
     userDB: IndexedDB;
     users: User[];
+    wsManager: WSManager;
 }
 
 export type  DataChannelConfigurator = (dataChannel: RTCDataChannel) => void;

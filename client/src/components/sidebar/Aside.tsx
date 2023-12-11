@@ -2,9 +2,23 @@ import React, {useContext, useState} from 'react';
 import {Menu, menuClasses, Sidebar} from 'react-pro-sidebar';
 import UserChatMenu from "./menu/UserChatMenu";
 import UserNameMenu from "./menu/UserNameMenu";
-import {Box, Card, CardContent, Tab, Tabs} from '@mui/material';
+import {
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Divider,
+    List,
+    ListItem,
+    ListItemSecondaryAction,
+    ListItemText,
+    Paper,
+    Switch,
+    Tab,
+    Tabs,
+    Typography
+} from '@mui/material';
 import {Chat, User} from "../../types/hoodadak";
-import {TimeUtils} from "../../utils/TimeUtils";
 import {GlobalContext} from "../../App";
 import useWindowSize from "../../hooks/useWindowSize";
 import {getStatusColor} from "../utils/ColorUtils";
@@ -24,15 +38,18 @@ const getSideBarWidth = (windowWidth: number) => {
 export default function Aside() {
     const context = useContext(GlobalContext);
     const {
+        user,
         setChat,
-        connectionStatus,
         users,
         setChats,
         setToggled,
         chatsDB,
         chats,
         chat,
-        toggled
+        toggled,
+        // setting,
+        // settingDB,
+        // setSetting
     } = context;
     const [activeTab, setActiveTab] = useState<string>('user');
     const {width} = useWindowSize();
@@ -96,7 +113,7 @@ export default function Aside() {
                         >
                             <Tab value="user" label={`User (${users.length})`}/>
                             <Tab value="chat" label="Chat"/>
-                            {/*<Tab value="setting" label="Setting"/>*/}
+                            <Tab value="setting" label="Setting"/>
                         </Tabs>
                         <CardContent sx={{padding: 0, overflowY: 'auto', height: 'calc(100% - 48px)'}}>
                             {activeTab === 'user' && (
@@ -128,9 +145,93 @@ export default function Aside() {
                                     }
                                 </Menu>
                             )}
-                            {/* {activeTab === 'setting' && (
-                                <></>
-                            )}*/}
+                            {activeTab === 'setting' && (
+                                <div>
+                                    <div
+                                        style={{padding: '10px', margin: '10px', display: 'flex', flexDirection: 'column'}}>
+                                        <Typography variant="h6" gutterBottom>
+                                            User
+                                        </Typography>
+                                        <Menu>
+                                            <UserChatMenu
+                                                user={user!}
+                                                lastMessage={`UUID: ${user?.uuid}`}
+                                            />
+                                        </Menu>
+                                        <Typography style={{marginTop: '20px'}} variant="h6" gutterBottom>
+                                            Settings
+                                        </Typography>
+                                        <List>
+                                            <ListItem>
+                                                <ListItemText primary="Use turn server"/>
+                                                <ListItemSecondaryAction>
+                                                    <Switch
+                                                        // checked={setting?.useTurnServer}
+                                                        onChange={
+                                                        async (e, checked) => {
+                                                            // setting!.useTurnServer = checked;
+                                                            // await settingDB.update(setting);
+                                                            // setSetting(setting!);
+                                                        }
+                                                    }/>
+                                                </ListItemSecondaryAction>
+                                            </ListItem>
+                                            <Divider/>
+                                            <ListItem>
+                                                <ListItemText primary="Use waiting notification"/>
+                                                <ListItemSecondaryAction>
+                                                    <Switch
+                                                        // checked={setting?.useWaitingNotification}
+                                                        onChange={
+                                                        async (e, checked) => {
+                                                            // setting!.useWaitingNotification = checked;
+                                                            // await settingDB.update(setting);
+                                                            // setSetting(setting!);
+                                                        }
+                                                    }/>
+                                                </ListItemSecondaryAction>
+                                            </ListItem>
+                                            <ListItem>
+                                                <Button
+                                                    variant="contained"
+                                                    color="error"
+                                                    onClick={async () => {
+                                                        if (window.confirm('Are you sure you want to delete all data?')) {
+                                                            await context.userDB.clear();
+                                                            await context.messagesDB.clear();
+                                                            await context.chatsDB.clear();
+                                                            // await context.settingDB.clear();
+                                                            window.location.reload();
+                                                        }
+                                                    }}
+                                                    style={{width: '100%'}}
+                                                >
+                                                    Reset All Data
+                                                </Button>
+                                            </ListItem>
+                                        </List>
+                                        <Paper style={{padding: '20px', margin: '20px', marginTop: '20px'}}>
+                                            <Typography style={{textAlign: 'center'}} variant="h6" gutterBottom>
+                                                Hoodadak
+                                            </Typography>
+                                            <div style={{display: 'flex', justifyContent: 'center'}}>
+                                                <img src='logo.svg' style={{width: "40%"}} alt='logo'/>
+                                            </div>
+                                            <Typography variant="body1" style={{marginTop: '20px'}}>
+                                                Hoodadak is a fast and lightweight direct messenger using WebRTC
+                                                technology developed by refracta.
+                                            </Typography>
+                                            <Typography variant="body2"
+                                                        style={{marginTop: '20px', textAlign: 'center'}}>
+                                                Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"
+                                                                  target="_blank" rel="noreferrer">GPLv3</a>. View the
+                                                source on <a href="https://github.com/refracta/hoodadak" target="_blank"
+                                                             rel="noreferrer">GitHub</a>.
+                                            </Typography>
+                                        </Paper>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </Box>

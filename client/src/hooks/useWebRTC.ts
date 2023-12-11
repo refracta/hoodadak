@@ -2,16 +2,6 @@ import {useEffect, useRef, useState} from 'react';
 import {AppContext, DataChannelConfigurator} from "../types/hoodadak-client";
 import {RTCConnectionMode, WSMessage, WSMessageType} from "../types/hoodadak";
 import DCManager from "../network/DCManager";
-import useEffectOnce from "./useEffectOnce";
-
-const getIceServers = () => {
-    return process.env.REACT_APP_ICE_SERVERS.split(',').map(s => {
-        let serverInfo = s.split(':');
-        let [type, host, port, username, credential] = serverInfo;
-        let urls = `${type}:${host}${port ? ':' + port : ''}`;
-        return {urls, username, credential};
-    }).filter(server => server.urls);
-}
 
 const defaultMediaConstrains = {
     audio: true,
@@ -27,12 +17,25 @@ export default function useWebRTC(config: {
     chatChannelConfigurator?: DataChannelConfigurator,
     mediaConstraints?: MediaStreamConstraints,
     mode: RTCConnectionMode
-}, {wsManager, lastJsonMessage}: AppContext) {
+}, {wsManager, lastJsonMessage,
+    // setting
+}: AppContext) {
+    const getIceServers = () => {
+        let iceServers = process.env.REACT_APP_ICE_SERVERS.split(',').map(s => {
+            let serverInfo = s.split(':');
+            let [type, host, port, username, credential] = serverInfo;
+            let urls = `${type}:${host}${port ? ':' + port : ''}`;
+            return {urls, username, credential};
+        }).filter(server => server.urls);
+       /* if (!setting?.useTurnServer) {
+            iceServers = iceServers.filter(server => !server.urls.toLowerCase().includes('turn'));
+        }*/
+        return iceServers;
+    }
     let [peerConnection, setPeerConnection] = useState<RTCPeerConnection>();
     let [chatChannel, setChatChannel] = useState<RTCDataChannel>();
     let [fileChannel, setFileChannel] = useState<RTCDataChannel>();
     let [webcamStream, setWebcamStream] = useState<MediaStream>();
-    let [startSide, setStartSide] = useState<boolean>(false);
 
     const localVideo = useRef<HTMLVideoElement>(null);
     const remoteVideo = useRef<HTMLVideoElement>(null);
@@ -61,8 +64,6 @@ export default function useWebRTC(config: {
     }
 
     function close() {
-        setStartSide(startSide = false);
-        console.log('okay close',peerConnection);
         if (peerConnection) {
             peerConnection.ontrack = null;
             peerConnection.onicecandidate = null;
@@ -78,9 +79,9 @@ export default function useWebRTC(config: {
                 }
             });
             peerConnection.close();
-            setPeerConnection(peerConnection = undefined);
             // setConnectionStatus('disconnected');
         }
+        setPeerConnection(peerConnection = undefined);
         if (localVideo.current?.srcObject) {
             localVideo.current?.pause();
             let tracks = (localVideo.current?.srcObject as any).getTracks();
@@ -110,7 +111,6 @@ export default function useWebRTC(config: {
     }
 
     async function start() {
-        setStartSide(startSide = true);
         initPeerConnection(config.mode);
         if (config.mode === 'video') {
             await initWebcamStream();
@@ -170,7 +170,7 @@ export default function useWebRTC(config: {
     function createPeerConnection(mode: RTCConnectionMode) {
         const connection = new RTCPeerConnection({
             iceServers: getIceServers()
-        })
+        });
 
         connection.onicecandidate = function handleICECandidateEvent(event) {
             if (event.candidate) {

@@ -6,7 +6,7 @@ import {DBConfig} from "./db/DBConfig";
 import StartPage from "./components/pages/StartPage";
 import Main from "./components/base/Main";
 import useWebSocket from "react-use-websocket";
-import {Chat, User, WSMessage, Message} from "./types/hoodadak";
+import {Chat, User, WSMessage, Message, Setting} from "./types/hoodadak";
 import {AppContext} from "./types/hoodadak-client";
 import useDatabaseData from "./hooks/useDatabaseData";
 import WSManager from "./network/WSManager";
@@ -26,8 +26,11 @@ export default function App() {
     const userDB = useIndexedDB('user');
     const chatsDB = useIndexedDB('chats');
     const messagesDB = useIndexedDB('messages');
+    const settingDB = useIndexedDB('setting');
     const [userData, setUserData] = useDatabaseData<User>(userDB);
     const [user, setUser] = [userData[0], (user: User) => setUserData([user])]
+    // const [settingData, setSettingData] = useDatabaseData<Setting>(settingDB);
+    // const [setting, setSetting] = [settingData[0], (setting: Setting) => setSettingData([setting])]
     const [users, setUsers] = useState<User[]>([]);
     const [chat, setChat] = useState<Chat>();
     const [chats, setChats] = useDatabaseData<Chat>(chatsDB);
@@ -52,6 +55,7 @@ export default function App() {
         chat,
         chats,
         chatsDB,
+        // settingData,
         connectionStatus,
         getWebSocket,
         lastJsonMessage,
@@ -61,20 +65,23 @@ export default function App() {
         mode,
         readyState,
         sendJsonMessage,
-        wsManager: new WSManager(sendJsonMessage),
         sendMessage,
         setChat,
         setChats,
         setConnectionStatus,
         setMessages,
         setMode,
+        // setSetting,
         setToggled,
         setUser,
         setUsers,
+        // setting,
+        // settingDB,
         toggled,
         user,
         userDB,
-        users
+        users,
+        wsManager: new WSManager(sendJsonMessage)
     };
 
     return (

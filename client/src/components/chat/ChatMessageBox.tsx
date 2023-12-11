@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useEffect, useLayoutEffect} from "react";
 import {IMessage, MessageBox} from "react-chat-elements";
 import {Message} from "../../types/hoodadak";
 
@@ -28,7 +28,7 @@ const toMultilineText = (text: string) => {
 export default function ChatMessageBox({message, isMaxScrollHeight, scrollToBottom}: {
     message: Message
     isMaxScrollHeight?: () => boolean,
-    scrollToBottom?: () => void,
+    scrollToBottom?: (delay?: number) => void,
 }) {
     let uniqueNumber = new Date(message.data.time).getTime();
     const defaultOptions: IMessage = {
@@ -53,6 +53,13 @@ export default function ChatMessageBox({message, isMaxScrollHeight, scrollToBott
     if (isMaxScrollHeight) {
         isNeedScroll = isMaxScrollHeight();
     }
+
+    useEffect(() => {
+        if(isNeedScroll && scrollToBottom) {
+            scrollToBottom();
+        }
+    }, []);
+
     if (message.data.type === 'text') {
         return (<MessageBox {...defaultOptions} type='text' text={toMultilineText(message.data.raw)}/>);
     } else if (message.data.type === 'image') {

@@ -7,11 +7,18 @@ import CryptoJS from 'crypto-js';
 import {GlobalContext} from "../../App";
 
 export default function StartPage() {
-    const {userDB, setUser} = useContext(GlobalContext);
+    const {userDB, setUser,
+        // settingDB
+    } = useContext(GlobalContext);
     const [name, setName] = useState<string>('');
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
+        let setting = {
+            useTurnServer: true,
+            useWaitingNotification: true
+        };
+        // await settingDB.add(setting);
         let uuid = v4();
         let user = {
             name, uuid, hash: CryptoJS.SHA512(name + uuid).toString()

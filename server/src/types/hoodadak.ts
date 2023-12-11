@@ -30,6 +30,11 @@ export type Chat = {
     lastMessageTime?: Date;
     user: User
 }
+export type Setting = {
+    id?: number;
+    useTurnServer: boolean;
+    useWaitingNotification: boolean;
+}
 export type MessageType = 'text' | 'file' | 'image' | 'video' | 'audio';
 export type Message = {
     data: {
@@ -80,14 +85,14 @@ export type WSRTCICEExchangeMessage = {
 };
 
 export enum RTCMessageType {
-    CHANGE_MODE = 'ChangeMode',
+    MODE_CHANGE = 'MODE_CHANGE',
     SEND_MSG = 'SendMsg',
     FILE_START = 'FileStart',
     FILE_COMPLETE = 'FileComplete'
 }
 
-export type RTCChangeModeMessage = {
-    msg: RTCMessageType.CHANGE_MODE;
+export type RTCModeChangeMessage = {
+    msg: RTCMessageType.MODE_CHANGE;
     mode: RTCConnectionMode;
 };
 

@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef} from "react";
+import React, {useCallback, useContext, useEffect, useRef} from "react";
 import {Box} from "@mui/material";
 import ChatToolbar from "./chat/ChatToolbar";
 import ChatContainerWrapper from "./chat/ChatLayoutContainer";
@@ -6,8 +6,9 @@ import ChatMessageBox from "../chat/ChatMessageBox";
 import ChatControl from "./chat/ChatControl";
 import {GlobalContext} from "../../App";
 import useEffectOnce from "../../hooks/useEffectOnce";
-import {Message, MessageType, RTCMessageType, WSMessage, WSMessageType} from "../../types/hoodadak";
+import {Message, MessageType, RTCMessageType, User, WSMessage, WSMessageType} from "../../types/hoodadak";
 import useWebRTC from "../../hooks/useWebRTC";
+
 
 const RTC_FILE_BUFFER_SIZE = parseInt(process.env.REACT_APP_RTC_FILE_BUFFER_SIZE);
 
@@ -19,18 +20,31 @@ export default function ChatPage() {
         chatsDB,
         connectionStatus,
         lastJsonMessage,
+        lastMessage,
         wsManager,
         messages,
         messagesDB,
         mode,
-        sendJsonMessage,
         setChats,
         setConnectionStatus,
         setMessages,
         setMode,
         setUsers,
+        // setting,
+        // settingData,
         user,
+        users
     } = context;
+
+/*    useEffect(() => {
+        if (setting?.useWaitingNotification) {
+            if (Notification.permission !== "denied") {
+                Notification.requestPermission().then((permission) => {
+                    console.log(`Notification.requestPermission(): ${permission}`);
+                });
+            }
+        }
+    }, [settingData]);*/
 
     let receivedBuffers: ArrayBuffer[] = [];
     let raw: Blob;
@@ -57,7 +71,7 @@ export default function ChatPage() {
                     setMessages(prevMessages => [...prevMessages, message]);
                     chat!.lastMessageTime = new Date(message.data.time);
                     chat!.lastMessage = message.data.type === 'text' ? message.data.raw : `[${message.data.type}] ${message.data.name}`;
-                    setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+                    setChats(chats);
                     await chatsDB.update(chat);
                 } else if (data.msg === RTCMessageType.FILE_START) {
                     fileBytes = data.size;
@@ -66,20 +80,23 @@ export default function ChatPage() {
                     receivedBuffers = [];
                     receivedBytes = 0;
                 } else if (data.msg === RTCMessageType.MODE_CHANGE) {
-                    if(data.mode === 'chat') {
+                    if (data.mode === 'chat') {
                         videoRTC.close();
                     }
                     setMode(data.mode);
                 }
             };
+
             chatChannel.onerror = (error: Event) => {
                 console.log("chatChannel.OnError:", error);
+                setConnectionStatus('disconnected');
+                chatRTC.close();
             };
 
             chatChannel.onclose = (event: Event) => {
                 console.log("chatChannel.OnClose", event);
-                // closeConnection();
-                // startRTC(mode);
+                setConnectionStatus('disconnected');
+                chatRTC.close();
             };
             (window as any).CC = chatChannel;
         },
@@ -110,23 +127,31 @@ export default function ChatPage() {
             chatRTC.close();
             videoRTC.close();
         }
-    }, [chat?.user]);
+    }, [chat?.user, chatRTC, videoRTC]);
 
     useEffect(() => {
         let message: WSMessage = lastJsonMessage;
         if (message?.msg === WSMessageType.USERS) {
+            /*const oldUsers = users.filter((u: User) => u?.selectedUser?.hash === user?.hash);
+            const newUsers = message.users.filter((u: User) => u?.selectedUser?.hash === user?.hash) as User[];
+            const targetUsers = newUsers.filter(n => !oldUsers.find(o => o.hash === n.hash));
+            for (let user of targetUsers) {
+                // sendNotification(`${user.name}`);
+            }*/
+            console.log(lastMessage)
+            console.log(121243);
             setUsers(message.users);
         } else if (message?.msg === WSMessageType.RTC_START) {
             chatRTC.start().catch(reportError);
         }
-    }, [lastJsonMessage]);
+    }, [lastMessage?.timeStamp]);
 
     const [downloadPercent, setDownloadPercent] = React.useState<number>(0);
     const [uploadPercent, setUploadPercent] = React.useState<number>(0);
     const chatContainer = useRef<HTMLDivElement>(null);
 
     const isMaxScrollHeight = () => {
-        return chatContainer.current ? chatContainer.current!.scrollTop + chatContainer.current!.clientHeight >= chatContainer.current!.scrollHeight : false;
+        return chatContainer.current ? chatContainer.current!.scrollTop + chatContainer.current!.clientHeight >= chatContainer.current!.scrollHeight - 50 : false;
     };
     const scrollToBottom = (delay: number = 0) => {
         setTimeout(_ => {
@@ -135,6 +160,32 @@ export default function ChatPage() {
             }
         }, delay);
     };
+    const sendNotification = () => {
+        if (Notification.permission === "granted") {
+            const notification = new Notification("Hoodadak", {
+                icon: 'logo.svg',
+                body: "여기에 메시지 내용을 작성하세요.",
+            });
+        }
+    }
+
+
+    useEffectOnce(() => {
+        let isNeedScroll = isMaxScrollHeight();
+        setInterval(_ => {
+            let messages = document.querySelectorAll('.rce-container-mbox');
+            let video = messages[messages.length - 1]?.querySelector('video');
+            if (video && !video.oncanplay) {
+                const currentIsNeedScroll = isNeedScroll;
+                video.oncanplay = function () {
+                    if (currentIsNeedScroll) {
+                        scrollToBottom();
+                    }
+                }
+            }
+            isNeedScroll = isMaxScrollHeight();
+        }, 100);
+    }, []);
 
     function updateProgress(type: 'receive' | 'send', sentBytes: number, totalBytes: number) {
         const progress = sentBytes / totalBytes;
@@ -167,9 +218,8 @@ export default function ChatPage() {
         setMessages([...messages, msg]);
         chat!.lastMessageTime = new Date(msg.data.time);
         chat!.lastMessage = msg.data.raw;
-        setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+        setChats(chats);
         await chatsDB.update(chat);
-
         setMessage('');
         ccManager.sendSendMsgMessage(msg);
         scrollToBottom();
@@ -205,7 +255,7 @@ export default function ChatPage() {
                 setMessages([...messages, msg]);
                 chat!.lastMessageTime = new Date(msg.data.time);
                 chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
-                setChats(chats = [chat!, ...chats.filter(c => c.user.hash !== chat?.user.hash)]);
+                setChats(chats);
                 await chatsDB.update(chat);
             }
             updateProgress('send', offset, file.size);
@@ -240,14 +290,14 @@ export default function ChatPage() {
             <ChatContainerWrapper>
                 <div ref={chatContainer} style={{overflowY: 'auto'}}>
                     <div
-                        style={{display: mode == 'chat' ? 'block' : 'none'}}>
+                        style={{display: mode === 'chat' ? 'block' : 'none'}}>
                         {chatMessages.map(m =>
                             <ChatMessageBox key={new Date(m.data.time).getTime()} message={m}
                                             isMaxScrollHeight={isMaxScrollHeight}
                                             scrollToBottom={scrollToBottom}/>
                         )}
                     </div>
-                    <div style={{height: '100%', display: mode == 'video' ? 'block' : 'none'}}>
+                    <div style={{height: '100%', display: mode === 'video' ? 'block' : 'none'}}>
                         <video style={{
                             width: '100%',
                             height: 'calc(50% - 8px)',

@@ -30,6 +30,11 @@ export type Chat = {
     lastMessageTime?: Date;
     user: User
 }
+export type Setting = {
+    id?: number;
+    useTurnServer: boolean;
+    useWaitingNotification: boolean;
+}
 export type MessageType = 'text' | 'file' | 'image' | 'video' | 'audio';
 export type Message = {
     data: {
