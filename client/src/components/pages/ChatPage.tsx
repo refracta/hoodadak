@@ -114,7 +114,14 @@ export default function ChatPage() {
 
     useEffect(() => {
         scrollToBottom();
+        setUploadPercent(0);
+        setDownloadPercent(0);
     }, [chat, mode]);
+
+    useEffect(() => {
+        setUploadPercent(0);
+        setDownloadPercent(0);
+    }, [connectionStatus]);
 
     useEffectOnce(() => {
         if (user) {
@@ -187,6 +194,7 @@ export default function ChatPage() {
 
     useEffectOnce(() => {
         let isNeedScroll = isMaxScrollHeight();
+        let lastLength = document.querySelectorAll('.rce-container-mbox').length;
         setInterval(_ => {
             let messages = document.querySelectorAll('.rce-container-mbox');
             let video = messages[messages.length - 1]?.querySelector('video');
@@ -198,7 +206,11 @@ export default function ChatPage() {
                     }
                 }
             }
+            if (isNeedScroll && lastLength !== messages.length) {
+                scrollToBottom();
+            }
             isNeedScroll = isMaxScrollHeight();
+            lastLength = messages.length;
         }, 100);
     }, []);
 
@@ -272,6 +284,7 @@ export default function ChatPage() {
                 chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
                 setChats(chats);
                 await chatsDB.update(chat);
+                event.target.value = "";
             }
             updateProgress('send', offset, file.size);
             if (offset < file.size) {

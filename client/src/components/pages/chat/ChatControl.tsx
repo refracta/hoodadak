@@ -26,7 +26,7 @@ export default function
                 background:
                     `linear-gradient(to top, rgba(100, 181, 246, 0.7) ${uploadPercent}%, transparent ${uploadPercent}%),
                     linear-gradient(to bottom, rgba(244, 67, 54, 0.7) ${downloadPercent}%, transparent ${downloadPercent}%)`
-            }} disabled={connectionStatus === 'disconnected'} sx={{p: '10px'}}
+            }} disabled={connectionStatus === 'disconnected' || uploadPercent > 0} sx={{p: '10px'}}
                         aria-label="upload picture" component="label">
                 <input hidden accept="*" type="file" onChange={handleFileUpload}/>
                 <AttachFileIcon/>
