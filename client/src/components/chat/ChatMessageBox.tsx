@@ -1,6 +1,6 @@
 import React from "react";
-import {Message, User} from "../../types/hoodadak";
-import {IMessage, MessageBox, MessageType} from "react-chat-elements";
+import {IMessage, MessageBox} from "react-chat-elements";
+import {Message} from "../../types/hoodadak";
 
 const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -25,8 +25,10 @@ const toMultilineText = (text: string) => {
     )) as any;
 }
 
-export default function ChatMessageBox({message}: {
+export default function ChatMessageBox({message, isMaxScrollHeight, scrollToBottom}: {
     message: Message
+    isMaxScrollHeight?: () => boolean,
+    scrollToBottom?: () => void,
 }) {
     let uniqueNumber = new Date(message.data.time).getTime();
     const defaultOptions: IMessage = {
@@ -47,8 +49,11 @@ export default function ChatMessageBox({message}: {
         status: 'sent'
     };
 
+    let isNeedScroll = false;
+    if (isMaxScrollHeight) {
+        isNeedScroll = isMaxScrollHeight();
+    }
     if (message.data.type === 'text') {
-        let props = {title: ''};
         return (<MessageBox {...defaultOptions} type='text' text={toMultilineText(message.data.raw)}/>);
     } else if (message.data.type === 'image') {
         return (
@@ -59,9 +64,18 @@ export default function ChatMessageBox({message}: {
                 data={{
                     uri: URL.createObjectURL(message.data.raw),
                     name: message.data.name,
-                    status: {click: false, loading: 0}
+                    status: undefined as any
                 }}
-                onClick={() => downloadBlob(message.data.raw, message.data.name!)}
+                onClick={(e) => {
+                    if ((e.target as any).tagName === 'IMG') {
+                        downloadBlob(message.data.raw, message.data.name!);
+                    }
+                }}
+                onLoad={() => {
+                    if (isNeedScroll && scrollToBottom) {
+                        scrollToBottom();
+                    }
+                }}
             />
         );
     } else if (message.data.type === 'video') {
@@ -80,9 +94,13 @@ export default function ChatMessageBox({message}: {
                 }}
                 title={message.data.name!}
                 date={message.data.time}
+                onLoad={() => {
+                    if (isNeedScroll && scrollToBottom) {
+                        scrollToBottom();
+                    }
+                }}
             />
-        )
-            ;
+        );
     } else if (message.data.type === 'audio') {
         return (
             <MessageBox
@@ -95,6 +113,11 @@ export default function ChatMessageBox({message}: {
                 }}
                 title={message.data.name!}
                 date={message.data.time}
+                onLoad={() => {
+                    if (isNeedScroll && scrollToBottom) {
+                        scrollToBottom();
+                    }
+                }}
             />
         );
     } else if (message.data.type === 'file') {

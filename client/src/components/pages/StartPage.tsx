@@ -30,6 +30,7 @@ export default function StartPage() {
 
     const NameTextField = () => (
         <TextField
+            inputProps={{maxLength: 20}}
             margin="normal"
             required
             fullWidth

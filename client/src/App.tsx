@@ -6,9 +6,10 @@ import {DBConfig} from "./db/DBConfig";
 import StartPage from "./components/pages/StartPage";
 import Main from "./components/base/Main";
 import useWebSocket from "react-use-websocket";
-import {Chat, Message, User, WSMessage} from "./types/hoodadak";
+import {Chat, User, WSMessage, Message} from "./types/hoodadak";
 import {AppContext} from "./types/hoodadak-client";
 import useDatabaseData from "./hooks/useDatabaseData";
+import WSManager from "./network/WSManager";
 
 const getWSEntrypoint = () => {
     let entrypoint = process.env.REACT_APP_BACKEND_ENTRYPOINT;
@@ -60,6 +61,7 @@ export default function App() {
         mode,
         readyState,
         sendJsonMessage,
+        wsManager: new WSManager(sendJsonMessage),
         sendMessage,
         setChat,
         setChats,

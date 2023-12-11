@@ -1,11 +1,11 @@
 import WSManager from '../../manager/WSManager';
 import {DefaultWSocket} from '../../../types/hoodadak-server';
 import {
+    RTCConnectionMode,
     WSKickMessage,
-    WSMessageType,
-    WSReadyMessage,
-    WSRTCICEExchangeMessage,
+    WSMessageType, WSReadyMessage,
     WSRTCSDPExchangeMessage,
+    WSRTCICEExchangeMessage,
     WSRTCStartMessage,
     WSUsersMessage
 } from "../../../types/hoodadak";
@@ -34,16 +34,16 @@ export default class DefaultWSManager extends WSManager {
         }
     }
 
-    sendRTCStart(mode: 'chat' | 'video', sockets: DefaultWSocket[] = this.getAllSockets()) {
-        this.json({msg: WSMessageType.RTC_START, mode} as WSRTCStartMessage, sockets);
+    sendRTCStart(sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_START} as WSRTCStartMessage, sockets);
     }
 
-    sendRTCSDPExchange(sdp: RTCSessionDescription, mode: 'chat' | 'video', sockets: DefaultWSocket[] = this.getAllSockets()) {
-        this.json({msg: WSMessageType.RTC_SDP_EXCHANGE, sdp, mode} as WSRTCSDPExchangeMessage, sockets);
+    sendRTCSDPExchange(mode: RTCConnectionMode, sdp: RTCSessionDescription, sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_SDP_EXCHANGE, mode, sdp} as WSRTCSDPExchangeMessage, sockets);
     }
 
-    sendRTCICEExchange(candidate: RTCIceCandidate, sockets: DefaultWSocket[] = this.getAllSockets()) {
-        this.json({msg: WSMessageType.RTC_ICE_EXCHANGE, candidate} as WSRTCICEExchangeMessage, sockets);
+    sendRTCICEExchange(mode: RTCConnectionMode, candidate: RTCIceCandidate, sockets: DefaultWSocket[] = this.getAllSockets()) {
+        this.json({msg: WSMessageType.RTC_ICE_EXCHANGE, mode, candidate} as WSRTCICEExchangeMessage, sockets);
     }
 
     sendKick(reason: string, sockets: DefaultWSocket[] = this.getAllSockets()) {

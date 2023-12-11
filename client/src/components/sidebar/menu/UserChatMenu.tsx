@@ -26,6 +26,14 @@ export default function UserChatMenu({user, lastMessage, lastMessageTime, active
         };
     }, [lastMessageTime]);
 
+    const usernameStyle: React.CSSProperties = {
+        fontSize: '14px',
+        fontWeight: 'bold',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap'
+    };
+
     const lastMessageStyle: React.CSSProperties = {
         color: 'grey',
         fontSize: 'smaller',
@@ -36,9 +44,9 @@ export default function UserChatMenu({user, lastMessage, lastMessageTime, active
 
     return (
         <UserIconMenu user={user} onClick={onClick} active={active} statusColor={statusColor}>
-            <div>
+            <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
+                <div style={usernameStyle}>{user.name}</div>
                 <div style={{color: 'grey', float: 'right', fontSize: 'smaller'}}>{timeString}</div>
-                <div style={{fontSize: '14px', fontWeight: 'bold'}}>{user.name}</div>
             </div>
             <div style={lastMessageStyle}>
                 {lastMessage}

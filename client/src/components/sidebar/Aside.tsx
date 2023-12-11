@@ -68,8 +68,8 @@ export default function Aside() {
     };
 
     chats.sort((c1: Chat, c2: Chat) => {
-        let d1 = c1.lastMessageTime ? new Date(c1.lastMessageTime).getTime() : Number.MAX_VALUE;
-        let d2 = c2.lastMessageTime ? new Date(c2.lastMessageTime).getTime() : Number.MAX_VALUE;
+        let d1 = c1.lastMessageTime ? new Date(c1.lastMessageTime).getTime() : Number.MIN_VALUE;
+        let d2 = c2.lastMessageTime ? new Date(c2.lastMessageTime).getTime() : Number.MIN_VALUE;
         return d2 - d1;
     });
 

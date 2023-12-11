@@ -54,6 +54,14 @@
   max-width: 50vw;
 }
 
+.rce-mbox-photo--img {
+  max-height: none !important;
+}
+
+.rce-mbox-photo--img:hover {
+  cursor: pointer; /* 또는 원하는 커서 스타일 */
+}
+
 /* Sidebar */
 @media (max-width: 768px) {
   .ps-sidebar-root:not(.ps-toggled) {

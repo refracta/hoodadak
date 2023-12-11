@@ -2,6 +2,7 @@ import {Dispatch, SetStateAction} from "react";
 import {Chat, Message, User} from "./hoodadak";
 import {JsonValue, ReadyState, SendJsonMessage, SendMessage, WebSocketLike} from "react-use-websocket";
 import {Key} from "react-indexed-db-hook/lib/indexed-db";
+import WSManager from "../network/WSManager";
 
 export type IndexedDB = {
     add: <T = any>(value: T, key?: any) => Promise<number>,
@@ -27,6 +28,7 @@ export type AppContext = {
     mode: 'chat' | 'video';
     readyState: ReadyState;
     sendJsonMessage: SendJsonMessage;
+    wsManager: WSManager;
     sendMessage: SendMessage;
     setChat: Dispatch<SetStateAction<Chat | undefined>>;
     setChats: Dispatch<SetStateAction<Chat[]>>;
@@ -41,3 +43,5 @@ export type AppContext = {
     userDB: IndexedDB;
     users: User[];
 }
+
+export type  DataChannelConfigurator = (dataChannel: RTCDataChannel) => void;
