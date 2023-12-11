@@ -143,7 +143,8 @@ export default function ChatPage() {
             if (setting?.useWaitingNotification) {
                 const oldUsers = users.filter((u: User) => u?.selectedUser?.hash === user?.hash);
                 const newUsers = message.users.filter((u: User) => u?.selectedUser?.hash === user?.hash) as User[];
-                const targetUsers = newUsers.filter(n => !oldUsers.find(o => o.hash === n.hash));
+                const targetUsers = newUsers.filter(n => !oldUsers.find(o => o.hash === n.hash)).filter(u => u.hash !== chat?.user.hash);
+
                 for (let user of targetUsers) {
                     sendWaitingNotification(user);
                 }
