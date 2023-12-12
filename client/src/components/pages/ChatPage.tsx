@@ -171,25 +171,29 @@ export default function ChatPage() {
     };
     const sendWaitingNotification = (user: User) => {
         if (Notification.permission === "granted") {
-            const notification = new Notification("Hoodadak", {
-                icon: 'logo.svg',
-                body: `${user.name} is waiting for your connection.`
-            });
+            try {
+                const notification = new Notification("Hoodadak", {
+                    icon: 'logo.svg',
+                    body: `${user.name} is waiting for your connection.`
+                });
 
-            notification.onclick = async () => {
-                let chat = chats.find(c => user.hash === c.user.hash);
-                let nameBasedChat = chats.find(c => user.name === c.user.name && !c.user.hash);
-                if (nameBasedChat) {
-                    chat = nameBasedChat;
-                }
-                if (!chat) {
-                    chat = {user, lastMessage: ''};
-                    let id = await chatsDB.add(chat);
-                    chat = {...chat, id};
-                    setChats(await chatsDB.getAll() as Chat[]);
-                }
-                setChat(chat);
-            };
+                notification.onclick = async () => {
+                    let chat = chats.find(c => user.hash === c.user.hash);
+                    let nameBasedChat = chats.find(c => user.name === c.user.name && !c.user.hash);
+                    if (nameBasedChat) {
+                        chat = nameBasedChat;
+                    }
+                    if (!chat) {
+                        chat = {user, lastMessage: ''};
+                        let id = await chatsDB.add(chat);
+                        chat = {...chat, id};
+                        setChats(await chatsDB.getAll() as Chat[]);
+                    }
+                    setChat(chat);
+                };
+            } catch (e) {
+
+            }
         }
     }
 
