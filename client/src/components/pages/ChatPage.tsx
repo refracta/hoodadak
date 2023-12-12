@@ -72,7 +72,7 @@ export default function ChatPage() {
                     setMessages(prevMessages => [...prevMessages, message]);
                     chat!.lastMessageTime = new Date(message.data.time);
                     chat!.lastMessage = message.data.type === 'text' ? message.data.raw : `[${message.data.type}] ${message.data.name}`;
-                    setChats(chats);
+                    setChats(prevChats => [...prevChats]);
                     await chatsDB.update(chat);
                 } else if (data.msg === RTCMessageType.FILE_START) {
                     fileBytes = data.size;
@@ -250,7 +250,7 @@ export default function ChatPage() {
         setMessages([...messages, msg]);
         chat!.lastMessageTime = new Date(msg.data.time);
         chat!.lastMessage = msg.data.raw;
-        setChats(chats);
+        setChats(prevChats => [...prevChats]);
         await chatsDB.update(chat);
         setMessage('');
         ccManager.sendSendMsgMessage(msg);
@@ -287,7 +287,7 @@ export default function ChatPage() {
                 setMessages([...messages, msg]);
                 chat!.lastMessageTime = new Date(msg.data.time);
                 chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
-                setChats(chats);
+                setChats(prevChats => [...prevChats]);
                 await chatsDB.update(chat);
                 event.target.value = "";
             }
