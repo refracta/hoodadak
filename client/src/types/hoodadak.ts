@@ -18,8 +18,8 @@ export type WSMessage = {
 } & any;
 
 export type User = {
-    hash?: string;
     id?: number;
+    hash?: string;
     name: string;
     selectedUser?: User;
     uuid?: string

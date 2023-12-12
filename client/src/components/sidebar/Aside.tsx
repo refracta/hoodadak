@@ -167,7 +167,7 @@ export default function Aside() {
                                         </Typography>
                                         <List>
                                             <ListItem>
-                                                <ListItemText primary="Use turn server"/>
+                                                <ListItemText primary="Use TURN server"/>
                                                 <ListItemSecondaryAction>
                                                     <Switch
                                                         checked={setting?.useTurnServer}
