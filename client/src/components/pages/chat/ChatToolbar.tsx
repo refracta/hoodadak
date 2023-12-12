@@ -23,7 +23,7 @@ export default function ChatToolbar({onModeChangeClick}: { onModeChangeClick: ()
             },
         },
     });
-    const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+    const isMdDown = useMediaQuery(theme.breakpoints.down('md'));
 
     const usernameStyle: React.CSSProperties = {
         fontWeight: 'bold',
@@ -59,7 +59,7 @@ export default function ChatToolbar({onModeChangeClick}: { onModeChangeClick: ()
                 >
                     {mode === 'chat' ? <VideoCallIcon/> : <CallEndIcon/>}
                 </IconButton>}
-                {!isMdUp && (
+                {isMdDown && (
                     <IconButton style={{marginLeft: '5px'}}
                                 edge="end"
                                 color="inherit"
