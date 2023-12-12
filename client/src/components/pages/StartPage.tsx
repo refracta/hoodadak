@@ -13,7 +13,7 @@ export default function StartPage() {
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
         let setting = {
-            useTurnServer: true,
+            useTURNServer: true,
             useWaitingNotification: true
         };
         await settingDB.add(setting);

@@ -32,7 +32,7 @@ export type Chat = {
 }
 export type Setting = {
     id?: number;
-    useTurnServer: boolean;
+    useTURNServer: boolean;
     useWaitingNotification: boolean;
 }
 export type MessageType = 'text' | 'file' | 'image' | 'video' | 'audio';

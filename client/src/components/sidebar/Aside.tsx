@@ -170,10 +170,10 @@ export default function Aside() {
                                                 <ListItemText primary="Use TURN server"/>
                                                 <ListItemSecondaryAction>
                                                     <Switch
-                                                        checked={setting?.useTurnServer}
+                                                        checked={setting?.useTURNServer}
                                                         onChange={
                                                             async (e, checked) => {
-                                                                setting!.useTurnServer = checked;
+                                                                setting!.useTURNServer = checked;
                                                                 await settingDB.update(setting);
                                                                 setSetting(setting!);
                                                             }

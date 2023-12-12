@@ -15,7 +15,7 @@ export const DBConfig = {
             store: "setting",
             storeConfig: {keyPath: "id", autoIncrement: true},
             storeSchema: [
-                {name: "useTurnServer", keypath: "useTurnServer", options: {unique: false}},
+                {name: "useTURNServer", keypath: "useTURNServer", options: {unique: false}},
                 {name: "useWaitingNotification", keypath: "useWaitingNotification", options: {unique: false}},
             ],
         },

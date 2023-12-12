@@ -25,7 +25,7 @@ export default function useWebRTC(config: {
             let urls = `${type}:${host}${port ? ':' + port : ''}`;
             return {urls, username, credential};
         }).filter(server => server.urls);
-        if (!setting?.useTurnServer) {
+        if (!setting?.useTURNServer) {
             iceServers = iceServers.filter(server => !server.urls.toLowerCase().includes('turn'));
         }
         return iceServers;
