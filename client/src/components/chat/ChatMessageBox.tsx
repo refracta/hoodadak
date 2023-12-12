@@ -46,7 +46,7 @@ export default function ChatMessageBox({message, isMaxScrollHeight, scrollToBott
         notch: true,
         retracted: false,
         titleColor: 'black',
-        status: 'sent'
+        status: undefined as any
     };
 
     let isNeedScroll = false;
