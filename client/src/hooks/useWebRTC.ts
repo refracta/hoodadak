@@ -97,9 +97,9 @@ export default function useWebRTC(config: {
             peerConnection!.ondatachannel = (event) => {
                 let receiveChannel = event.channel;
                 if (receiveChannel.label === 'chat') {
-                    config?.chatChannelConfigurator?.(receiveChannel);
+                    config?.chatChannelConfigurator?.(receiveChannel, chatChannel!);
                 } else if (receiveChannel.label === 'file') {
-                    config?.fileChannelConfigurator?.(receiveChannel);
+                    config?.fileChannelConfigurator?.(receiveChannel, fileChannel!);
                 }
             };
         } catch (e) {

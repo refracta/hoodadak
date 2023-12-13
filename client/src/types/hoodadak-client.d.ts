@@ -48,4 +48,4 @@ export type AppContext = {
     wsManager: WSManager;
 }
 
-export type  DataChannelConfigurator = (dataChannel: RTCDataChannel) => void;
+export type  DataChannelConfigurator = (receiveChannel: RTCDataChannel, sendChannel :RTCDataChannel) => void;

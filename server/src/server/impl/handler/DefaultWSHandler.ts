@@ -54,7 +54,7 @@ export default class DefaultWSHandler implements WebSocketHandler<DefaultWSServe
             if (isCoupled) {
                 server.manager.sendUsers();
                 server.manager.sendRTCStart([selectedUserSocket]);
-                console.log(user.name, selectedUser.name);
+                console.log(`<${user.name} ↔ ${selectedUser.name}>`);
             }
         };
 

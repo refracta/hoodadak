@@ -36,6 +36,7 @@ export type Setting = {
     useWaitingNotification: boolean;
 }
 export type MessageType = 'text' | 'file' | 'image' | 'video' | 'audio';
+export type MessageStatus = 'waiting' | 'sent' | 'received' | 'read';
 export type Message = {
     data: {
         isMe?: boolean;
@@ -43,8 +44,10 @@ export type Message = {
         raw: any;
         time: Date;
         type: MessageType
+        status: MessageStatus
     };
-    user: User
+    user: User,
+    id?: number
 }
 
 export type RTCConnectionMode = 'chat' | 'video';
@@ -85,8 +88,9 @@ export type WSRTCICEExchangeMessage = {
 };
 
 export enum RTCMessageType {
-    MODE_CHANGE = 'MODE_CHANGE',
+    MODE_CHANGE = 'ModeChange',
     SEND_MSG = 'SendMsg',
+    RECEIVE_MSG = 'ReceiveMsg',
     FILE_START = 'FileStart',
     FILE_COMPLETE = 'FileComplete'
 }
@@ -99,6 +103,11 @@ export type RTCModeChangeMessage = {
 export type RTCSendMsgMessage = {
     msg: RTCMessageType.SEND_MSG;
     message: Message;
+};
+
+export type RTCReceiveMsgMessage = {
+    msg: RTCMessageType.RECEIVE_MSG;
+    time: Date;
 };
 
 export type RTCFileStartMessage = {

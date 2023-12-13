@@ -8,6 +8,7 @@ import {GlobalContext} from "../../App";
 import useEffectOnce from "../../hooks/useEffectOnce";
 import {Chat, Message, MessageType, RTCMessageType, User, WSMessage, WSMessageType} from "../../types/hoodadak";
 import useWebRTC from "../../hooks/useWebRTC";
+import DCManager from "../../network/DCManager";
 
 
 const RTC_FILE_BUFFER_SIZE = parseInt(process.env.REACT_APP_RTC_FILE_BUFFER_SIZE);
@@ -51,29 +52,48 @@ export default function ChatPage() {
     let raw: Blob;
     let fileBytes = 0;
     let receivedBytes = 0;
-    const chatRTC = useWebRTC({
+
+    let chatRTC = useWebRTC({
         mode: 'chat',
-        chatChannelConfigurator: (chatChannel) => {
-            chatChannel.onopen = (error: Event) => {
+        chatChannelConfigurator: (receiveChannel, sendChannel) => {
+            receiveChannel.onopen = (error: Event) => {
                 setConnectionStatus('connected');
             };
-
-            chatChannel.onmessage = async ({data}: MessageEvent) => {
+            const ccManager = new DCManager(sendChannel);
+            receiveChannel.onmessage = async ({data}: MessageEvent) => {
                 data = JSON.parse(data);
-                console.log(data);
                 if (data.msg === RTCMessageType.SEND_MSG) {
                     let message = data.message;
+                    delete message.id;
                     message.user = chat?.user;
+                    message.data.time = new Date(message.data.time);
                     message.data.isMe = false;
+                    message.data.status = undefined;
                     if (message.data.type !== 'text') {
                         message.data.raw = raw;
                     }
-                    await messagesDB.add(message);
+                    message.id = await messagesDB.add(message);
                     setMessages(prevMessages => [...prevMessages, message]);
+                    chat = chats.find(c => c.user.hash === chat?.user.hash);
                     chat!.lastMessageTime = new Date(message.data.time);
                     chat!.lastMessage = message.data.type === 'text' ? message.data.raw : `[${message.data.type}] ${message.data.name}`;
                     setChats(prevChats => [...prevChats]);
                     await chatsDB.update(chat);
+                    ccManager.sendReceiveMsgMessage(message.data.time);
+                } else if (data.msg === RTCMessageType.RECEIVE_MSG) {
+                    let time = new Date(data.time).getTime();
+                    setMessages(messages => {
+                        for (let i = messages.length - 1; i >= 0; i--) {
+                            let currentMessage = messages[i];
+                            let messageTime = new Date(currentMessage.data.time).getTime();
+                            if (messageTime === time) {
+                                currentMessage.data.status = 'sent';
+                                messagesDB.update(currentMessage);
+                                break;
+                            }
+                        }
+                        return [...messages];
+                    });
                 } else if (data.msg === RTCMessageType.FILE_START) {
                     fileBytes = data.size;
                 } else if (data.msg === RTCMessageType.FILE_COMPLETE) {
@@ -85,21 +105,23 @@ export default function ChatPage() {
                         videoRTC.close();
                     }
                     setMode(data.mode);
+                } else {
+                    console.log(data);
+
                 }
-            };
+            }
 
-            chatChannel.onerror = (error: Event) => {
-                console.log("chatChannel.OnError:", error);
+            receiveChannel.onerror = (error: Event) => {
+                console.log("receiveChannel.OnError:", error);
                 setConnectionStatus('disconnected');
                 chatRTC.close();
             };
 
-            chatChannel.onclose = (event: Event) => {
-                console.log("chatChannel.OnClose", event);
+            receiveChannel.onclose = (event: Event) => {
+                console.log("receiveChannel.OnClose", event);
                 setConnectionStatus('disconnected');
                 chatRTC.close();
             };
-            (window as any).CC = chatChannel;
         },
         fileChannelConfigurator: (fileChannel) => {
             fileChannel.onmessage = async ({data}: MessageEvent) => {
@@ -226,16 +248,12 @@ export default function ChatPage() {
         if (type === 'receive') {
             setDownloadPercent(floorProgress);
             if (isComplete) {
-                setTimeout(_ => {
-                    setDownloadPercent(0);
-                }, 1000);
+                setDownloadPercent(0);
             }
         } else {
             setUploadPercent(floorProgress);
             if (isComplete) {
-                setTimeout(_ => {
-                    setUploadPercent(0);
-                }, 1000);
+                setUploadPercent(0);
             }
         }
         console.log(`전송 진행률 (${type}): ${progress * 100}%`);
@@ -244,16 +262,18 @@ export default function ChatPage() {
     const handleSendMessage = async (message: string, setMessage: React.Dispatch<React.SetStateAction<string>>) => {
         let msg: Message = {
             user: chat?.user,
-            data: {raw: message, time: new Date(), type: 'text', isMe: true}
+            data: {raw: message, time: new Date(), type: 'text', isMe: true, status: 'waiting'}
         } as Message;
-        await messagesDB.add(msg);
-        setMessages([...messages, msg]);
+        msg.id = await messagesDB.add(msg);
+        setMessages(messages = [...messages, msg]);
+        ccManager?.sendSendMsgMessage(msg);
+
+        chat = chats.find(c => c.user.hash === chat?.user.hash);
         chat!.lastMessageTime = new Date(msg.data.time);
         chat!.lastMessage = msg.data.raw;
         setChats(prevChats => [...prevChats]);
         await chatsDB.update(chat);
         setMessage('');
-        ccManager.sendSendMsgMessage(msg);
         scrollToBottom();
     };
 
@@ -271,24 +291,26 @@ export default function ChatPage() {
 
         let msg: Message = {
             user: chat?.user!,
-            data: {raw: file, time: new Date(), name: file.name, type, isMe: true}
+            data: {raw: file, time: new Date(), name: file.name, type, isMe: true, status: 'waiting'}
         };
+        msg.id = await messagesDB.add(msg);
+        setMessages(prevMessages => [...prevMessages, msg]);
+
+        chat = chats.find(c => c.user.hash === chat?.user.hash);
+        chat!.lastMessageTime = new Date(msg.data.time);
+        chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
+        setChats(prevChats => [...prevChats]);
+        await chatsDB.update(chat);
 
         let offset = 0;
         const fileReader = new FileReader();
         fileReader.onload = async (e) => {
             let buffer = e.target?.result as ArrayBuffer;
-            fcManager.dataChannel?.send(buffer);
+            fcManager?.dataChannel?.send(buffer);
             offset += buffer.byteLength;
             if (offset === file.size) {
-                ccManager.sendFileCompleteMessage();
-                ccManager.sendSendMsgMessage(msg);
-                await messagesDB.add(msg);
-                setMessages([...messages, msg]);
-                chat!.lastMessageTime = new Date(msg.data.time);
-                chat!.lastMessage = msg.data.type === 'text' ? msg.data.raw : `[${msg.data.type}] ${msg.data.name}`;
-                setChats(prevChats => [...prevChats]);
-                await chatsDB.update(chat);
+                ccManager?.sendFileCompleteMessage();
+                ccManager?.sendSendMsgMessage(msg);
                 event.target.value = "";
             }
             updateProgress('send', offset, file.size);
@@ -301,7 +323,7 @@ export default function ChatPage() {
             fileReader.readAsArrayBuffer(slice);
         };
 
-        ccManager.sendFileStartMessage(file.size);
+        ccManager?.sendFileStartMessage(file.size);
         readSlice(0);
     };
 
@@ -313,7 +335,7 @@ export default function ChatPage() {
             setMode(mode = 'chat');
             videoRTC.close();
         }
-        ccManager.sendChangeModeMessage(mode);
+        ccManager?.sendChangeModeMessage(mode);
     }
 
     const chatMessages = messages.filter(m => m.user.hash === chat?.user.hash);

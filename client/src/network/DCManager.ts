@@ -4,7 +4,7 @@ import {
     RTCFileCompleteMessage,
     RTCFileStartMessage,
     RTCMessageType,
-    RTCModeChangeMessage,
+    RTCModeChangeMessage, RTCReceiveMsgMessage,
     RTCSendMsgMessage
 } from "../types/hoodadak";
 
@@ -31,6 +31,13 @@ export default class DCManager {
             msg: RTCMessageType.SEND_MSG,
             message
         } as RTCSendMsgMessage);
+    }
+
+    sendReceiveMsgMessage(time: Date) {
+        this.json({
+            msg: RTCMessageType.RECEIVE_MSG,
+            time
+        } as RTCReceiveMsgMessage);
     }
 
     sendFileStartMessage(size: number) {
