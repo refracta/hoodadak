@@ -1,5 +1,5 @@
 # Hoodadak - Fast and lightweight direct messenger
-<img src="client/public/logo.svg" width="300">
+<p align="center"><img src="client/public/logo.svg" width="300"></p>
 
 Hoodadak is a fast and lightweight web messenger utilizing WebRTC. It supports chat and video calling features. Implemented message exchange (including file sharing) and video calling features using WebRTC technology.
 
