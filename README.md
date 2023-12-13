@@ -5,6 +5,7 @@ Hoodadak is a fast and lightweight web messenger utilizing WebRTC. It supports c
 
 ![](https://github.com/refracta/hoodadak/assets/58779799/5ff46e93-066a-4517-bf8f-d4d16d9134df)
 
+
 # Installation & Run
 ```bash
 git clone https://github.com/refracta/hoodadak
@@ -30,3 +31,6 @@ REACT_APP_BACKEND_ENTRYPOINT=0.0.0.0:5000
 REACT_APP_ICE_SERVERS=stun:stun.l.google.com:19302,turn:freeturn.net:3478:free:free
 # STUN & TURN server list (protocol:domain:port:username:creditinal)
 ```
+
+# License
+This project is licensed under the [MIT License](LICENSE). See the LICENSE file for more details.
